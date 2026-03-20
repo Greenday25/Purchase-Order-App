@@ -1,0 +1,114 @@
+﻿<Window x:Class="PurchaseOrderApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:PurchaseOrderApp.ViewModels"
+        mc:Ignorable="d"
+        Title="Purchase Order App" Height="900" Width="1000">
+
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <Image Source="Assets/logo.png"
+                   Width="92"
+                   Height="46"
+                   Stretch="Uniform"
+                   VerticalAlignment="Center"
+                   Margin="0,0,12,0" />
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="OFFICIAL ORDER" FontSize="24" FontWeight="Bold" />
+                <TextBlock Text="Purchase Order Generator" Foreground="#666666" />
+            </StackPanel>
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="3*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Top">
+                <TextBlock Text="Order Header" FontWeight="Bold" Margin="0,0,0,8" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="Order #:" Width="80"/>
+                    <TextBox Text="{Binding CurrentOrder.OrderNumber, UpdateSourceTrigger=PropertyChanged}"
+                             Width="200"
+                             IsReadOnly="True"
+                             TextAlignment="Left"
+                             VerticalContentAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="Date:" Width="80" />
+                    <DatePicker SelectedDate="{Binding CurrentOrder.Date, UpdateSourceTrigger=PropertyChanged}" Width="200" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="Reference:" Width="80" />
+                    <TextBox Text="{Binding CurrentOrder.Reference, UpdateSourceTrigger=PropertyChanged}" Width="200" TextChanged="OnReferenceChanged" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,4">
+                    <TextBlock Text="Bill To:" Width="80" />
+                    <TextBox Text="{Binding CurrentOrder.BillTo, UpdateSourceTrigger=PropertyChanged}" Width="200" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="Address:" Width="80" />
+                    <TextBox Text="{Binding CurrentOrder.BillToAddress, UpdateSourceTrigger=PropertyChanged}" Width="200" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,4">
+                    <TextBlock Text="Vendor:" Width="80" />
+                    <ComboBox ItemsSource="{Binding Vendors}" SelectedItem="{Binding SelectedVendor}" DisplayMemberPath="Name" Width="250" />
+                </StackPanel>
+
+                <Button Content="Add Line" Command="{Binding AddLineCommand}" Width="120" Margin="0,20,0,0" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                <TextBlock Text="Line Items" FontWeight="Bold" Margin="0,0,0,8" />
+                <DataGrid ItemsSource="{Binding Lines}" AutoGenerateColumns="False" CanUserAddRows="False" Height="420" Margin="0,0,0,4" SelectionMode="Single">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                        <DataGridTextColumn Header="Part No." Binding="{Binding PartNumber, UpdateSourceTrigger=PropertyChanged}" Width="110" />
+                        <DataGridTextColumn Header="Description" Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="Price/Unit" Binding="{Binding UnitPrice, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}" Width="90" />
+                        <DataGridTextColumn Header="Price" Binding="{Binding LineTotal, StringFormat=N2}" Width="90" IsReadOnly="True" />
+                        <DataGridTemplateColumn Header="Action" Width="90">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Remove" Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                    <StackPanel Margin="0,0,20,0">
+                        <TextBlock Text="Subtotal" />
+                        <TextBlock Text="VAT" />
+                        <TextBlock Text="Total" FontWeight="Bold" />
+                    </StackPanel>
+                    <StackPanel>
+                        <TextBlock Text="{Binding SubTotal, StringFormat=C2}" />
+                        <TextBlock Text="{Binding VatAmount, StringFormat=C2}" />
+                        <TextBlock Text="{Binding TotalAmount, StringFormat=C2}" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Save PO" Width="100" Command="{Binding SavePurchaseOrderCommand}" Margin="0,0,10,0" />
+            <Button Content="Print Invoice" Width="120" Click="OnPrintInvoice" Margin="0,0,10,0" />
+            <Button Content="Export to PDF" Width="120" Click="OnExportPdf" />
+        </StackPanel>
+    </Grid>
+</Window>
