@@ -22,6 +22,14 @@ namespace PurchaseOrderApp.Models
         public string BillToAddress { get; set; }
 
         public decimal VATPercent { get; set; } = 15m;
+        public DateTime? ManagerApprovedAt { get; set; }
+        public DateTime? DirectorApprovedAt { get; set; }
+        public DateTime? SupplierCopySentAt { get; set; }
+        public DateTime? RejectedAt { get; set; }
+        public string? SignedOrderFileName { get; set; }
+        public byte[]? SignedOrderContent { get; set; }
+        public string? InvoiceFileName { get; set; }
+        public byte[]? InvoiceContent { get; set; }
 
         public IList<PurchaseOrderLine> Lines { get; set; } = new List<PurchaseOrderLine>();
 

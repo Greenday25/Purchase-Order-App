@@ -2,52 +2,31 @@ using Microsoft.Win32;
 using PurchaseOrderApp.ViewModels;
 using System.IO;
 using System.Windows;
-using System.Windows.Input;
 
 namespace PurchaseOrderApp;
 
 /// <summary>
-/// Interaction logic for MainWindow.xaml
+/// Interaction logic for OrderDetailsWindow.xaml
 /// </summary>
-public partial class MainWindow : Window
+public partial class OrderDetailsWindow : Window
 {
-    public MainWindow()
+    private readonly MainViewModel _mainViewModel;
+    private readonly int _purchaseOrderId;
+
+    public OrderDetailsWindow(MainViewModel mainViewModel, int purchaseOrderId)
     {
         InitializeComponent();
+        _mainViewModel = mainViewModel;
+        _purchaseOrderId = purchaseOrderId;
+
+        LoadOrderDetails();
     }
 
-    private void OnNewOrder(object sender, RoutedEventArgs e)
-    {
-        var editorWindow = new OrderEditorWindow
-        {
-            Owner = this
-        };
-
-        editorWindow.ShowDialog();
-
-        GetViewModel()?.LoadOrderHistory();
-    }
-
-    private void OnHistoryRowDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        var vm = GetViewModel();
-        var order = vm?.SelectedOrderHistoryItem;
-        if (vm == null || order == null)
-        {
-            return;
-        }
-
-        var detailsWindow = new OrderDetailsWindow(vm, order.PurchaseOrderId)
-        {
-            Owner = this
-        };
-
-        detailsWindow.ShowDialog();
-    }
+    private OrderDetailsViewModel? CurrentOrderDetails => DataContext as OrderDetailsViewModel;
 
     private void OnMarkApproved(object sender, RoutedEventArgs e)
     {
-        var order = GetSelectedOrder();
+        var order = GetCurrentOrderDetails();
         if (order == null)
         {
             return;
@@ -65,21 +44,24 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (order.ManagerApprovedAt.HasValue || order.DirectorApprovedAt.HasValue)
+        if (order.IsApproved)
         {
             MessageBox.Show("Approval is already marked for this order.", "Already updated", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        if (!GetViewModel()!.MarkApprovalsCompleted(order.PurchaseOrderId))
+        if (!_mainViewModel.MarkApprovalsCompleted(_purchaseOrderId))
         {
             MessageBox.Show("I couldn't update the approval status for that order.", "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
         }
+
+        LoadOrderDetails();
     }
 
     private void OnMarkRejected(object sender, RoutedEventArgs e)
     {
-        var order = GetSelectedOrder();
+        var order = GetCurrentOrderDetails();
         if (order == null)
         {
             return;
@@ -97,41 +79,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!GetViewModel()!.MarkRejected(order.PurchaseOrderId))
+        if (!_mainViewModel.MarkRejected(_purchaseOrderId))
         {
             MessageBox.Show("I couldn't update the rejected status for that order.", "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-    }
-
-    private void OnDeleteOrder(object sender, RoutedEventArgs e)
-    {
-        var order = GetSelectedOrder();
-        if (order == null)
-        {
             return;
         }
 
-        if (order.IsCompleted)
-        {
-            MessageBox.Show("Completed orders cannot be deleted.", "Delete blocked", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var confirmation = MessageBox.Show(
-            $"Delete order {order.OrderNumber}?",
-            "Delete order",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
-
-        if (confirmation != MessageBoxResult.Yes)
-        {
-            return;
-        }
-
-        if (!GetViewModel()!.DeleteOrder(order.PurchaseOrderId))
-        {
-            MessageBox.Show("I couldn't delete that order.", "Delete failed", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
+        LoadOrderDetails();
     }
 
     private void OnUploadSignedOrder(object sender, RoutedEventArgs e)
@@ -154,9 +108,48 @@ public partial class MainWindow : Window
         OpenDocument(isInvoice: true);
     }
 
+    private void OnDeleteOrder(object sender, RoutedEventArgs e)
+    {
+        var order = GetCurrentOrderDetails();
+        if (order == null)
+        {
+            return;
+        }
+
+        if (order.IsCompleted)
+        {
+            MessageBox.Show("Completed orders cannot be deleted.", "Delete blocked", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var confirmation = MessageBox.Show(
+            $"Delete order {order.OrderNumber}?",
+            "Delete order",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (confirmation != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        if (!_mainViewModel.DeleteOrder(_purchaseOrderId))
+        {
+            MessageBox.Show("I couldn't delete that order.", "Delete failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        Close();
+    }
+
+    private void OnCloseWindow(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
     private void UploadDocument(string documentLabel, bool isInvoice)
     {
-        var order = GetSelectedOrder();
+        var order = GetCurrentOrderDetails();
         if (order == null)
         {
             return;
@@ -168,13 +161,13 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!isInvoice && !(order.ManagerApprovedAt.HasValue || order.DirectorApprovedAt.HasValue))
+        if (!isInvoice && !order.IsApproved)
         {
             MessageBox.Show("Approve the order first before uploading the signed order.", "Approval required", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        if (isInvoice && string.IsNullOrWhiteSpace(order.SignedOrderFileName))
+        if (isInvoice && !order.HasSignedOrder)
         {
             MessageBox.Show("Upload the signed order first so the order can move into the closed state before the invoice is added.", "Signed order required", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
@@ -195,54 +188,59 @@ public partial class MainWindow : Window
 
         var fileBytes = File.ReadAllBytes(dialog.FileName);
         var fileName = Path.GetFileName(dialog.FileName);
-        var vm = GetViewModel()!;
-
         var wasSaved = isInvoice
-            ? vm.SaveInvoiceDocument(order.PurchaseOrderId, fileName, fileBytes)
-            : vm.SaveSignedOrderDocument(order.PurchaseOrderId, fileName, fileBytes);
+            ? _mainViewModel.SaveInvoiceDocument(_purchaseOrderId, fileName, fileBytes)
+            : _mainViewModel.SaveSignedOrderDocument(_purchaseOrderId, fileName, fileBytes);
 
         if (!wasSaved)
         {
             MessageBox.Show($"I couldn't store that {documentLabel} on the selected order.", "Upload failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
         }
+
+        LoadOrderDetails();
     }
 
     private void OpenDocument(bool isInvoice)
     {
-        var order = GetSelectedOrder();
-        if (order == null)
-        {
-            return;
-        }
-
-        var vm = GetViewModel()!;
         var storedDocument = isInvoice
-            ? vm.GetInvoiceDocument(order.PurchaseOrderId)
-            : vm.GetSignedOrderDocument(order.PurchaseOrderId);
+            ? _mainViewModel.GetInvoiceDocument(_purchaseOrderId)
+            : _mainViewModel.GetSignedOrderDocument(_purchaseOrderId);
 
         if (storedDocument == null)
         {
-            MessageBox.Show($"There is no {(isInvoice ? "invoice" : "signed order")} uploaded for this order yet.", "Document not found", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(
+                $"There is no {(isInvoice ? "invoice" : "signed order")} uploaded for this order yet.",
+                "Document not found",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
             return;
         }
 
         OrderDocumentLauncher.OpenStoredDocument(storedDocument);
     }
 
-    private MainViewModel? GetViewModel()
+    private OrderDetailsViewModel? GetCurrentOrderDetails()
     {
-        return DataContext as MainViewModel;
-    }
-
-    private OrderHistoryItem? GetSelectedOrder()
-    {
-        var order = GetViewModel()?.SelectedOrderHistoryItem;
-        if (order != null)
+        if (CurrentOrderDetails != null)
         {
-            return order;
+            return CurrentOrderDetails;
         }
 
-        MessageBox.Show("Select an order from the history table first.", "Order required", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageBox.Show("I couldn't load that order's details.", "Order not found", MessageBoxButton.OK, MessageBoxImage.Warning);
         return null;
+    }
+
+    private void LoadOrderDetails()
+    {
+        var orderDetails = _mainViewModel.GetOrderDetails(_purchaseOrderId);
+        if (orderDetails == null)
+        {
+            MessageBox.Show("I couldn't load that order's details.", "Order not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Close();
+            return;
+        }
+
+        DataContext = orderDetails;
     }
 }
