@@ -5,13 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Order Details"
-        Height="780"
-        Width="1280"
-        MinHeight="680"
-        MinWidth="1100"
+        Height="860"
+        Width="1360"
+        MinHeight="760"
+        MinWidth="1180"
         WindowStartupLocation="CenterOwner">
 
-    <Grid Margin="16">
+    <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -19,221 +19,415 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel>
-            <TextBlock Text="{Binding OrderNumber, TargetNullValue=Order Details}"
-                       FontSize="24"
-                       FontWeight="Bold" />
-            <TextBlock Text="{Binding OrderStatus, StringFormat=Status: {0}, TargetNullValue=Status: }"
-                       Margin="0,4,0,0"
-                       Foreground="#666666" />
-        </StackPanel>
-
-        <Border Grid.Row="1"
-                Margin="0,16,0,16"
-                Padding="14"
-                BorderBrush="#D6D6D6"
-                BorderThickness="1"
-                Background="#F7F7F7">
+        <Border Style="{StaticResource HeroCardStyle}">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="160" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="160" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="104"
+                            Height="104"
+                            CornerRadius="22"
+                            Background="White"
+                            BorderBrush="#FFFFFF"
+                            BorderThickness="1"
+                            Padding="16"
+                            Margin="0,0,18,0">
+                        <Image Source="Assets/logo.png"
+                               Stretch="Uniform" />
+                    </Border>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding OrderNumber, StringFormat=Order {0}, TargetNullValue=Order Details}"
+                                   FontSize="30"
+                                   FontWeight="Bold" />
+                        <Border Margin="0,10,0,0"
+                                Padding="10,4"
+                                Background="#FFFFFFCC"
+                                BorderBrush="#FFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="999">
+                            <TextBlock Text="{Binding OrderStatus, StringFormat=Status: {0}, TargetNullValue=Status: Pending Approval}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource AccentDarkBrush}" />
+                        </Border>
+                        <TextBlock Text="Review the saved order, manage its workflow, open supporting documents, and export the PDF from one place."
+                                   Margin="0,10,0,0"
+                                   FontSize="14"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Width="250"
+                        Background="#FFFFFFCC"
+                        BorderBrush="#FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16,14"
+                        VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="Quick Snapshot"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="{Binding CompanyName}"
+                                   Margin="0,8,0,0"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding TotalAmount, StringFormat=Total: R {0:N2}}"
+                                   Margin="0,6,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                        <TextBlock Text="{Binding Date, StringFormat=Date: {0:dd/MM/yyyy}}"
+                                   Margin="0,4,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,20,0,18"
+                Style="{StaticResource CardBorderStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="16" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Date:" FontWeight="SemiBold" />
-                <TextBlock Grid.Column="1" Text="{Binding Date, StringFormat=dd/MM/yyyy}" Margin="0,0,12,0" />
+                <Border Background="{StaticResource CardTintBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Company"
+                                   Style="{StaticResource FieldLabelStyle}" />
+                        <TextBlock Text="{Binding CompanyName}"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
 
-                <TextBlock Grid.Column="2" Text="Company:" FontWeight="SemiBold" />
-                <TextBlock Grid.Column="3" Text="{Binding CompanyName}" TextWrapping="Wrap" />
+                <Border Grid.Column="2"
+                        Background="{StaticResource CardTintBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Bill To"
+                                   Style="{StaticResource FieldLabelStyle}" />
+                        <TextBlock Text="{Binding BillTo}"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
 
-                <TextBlock Grid.Row="1" Text="Bill To:" FontWeight="SemiBold" Margin="0,10,0,0" />
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BillTo}" Margin="0,10,12,0" TextWrapping="Wrap" />
+                <Border Grid.Row="1"
+                        Margin="0,16,0,0"
+                        Background="{StaticResource CardTintBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Reference"
+                                   Style="{StaticResource FieldLabelStyle}" />
+                        <TextBlock Text="{Binding Reference}"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding BillToAddress}"
+                                   Margin="0,10,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
 
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="Reference:" FontWeight="SemiBold" Margin="0,10,0,0" />
-                <TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Reference}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                <Border Grid.Row="1"
+                        Grid.Column="2"
+                        Margin="0,16,0,0"
+                        Background="{StaticResource CardTintBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Documents Overview"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding SignedOrderFileName, StringFormat=Signed Order: {0}}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding InvoiceFileName, StringFormat=Invoice: {0}}"
+                                       Margin="0,10,0,0"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
 
-                <TextBlock Grid.Row="2" Text="Address:" FontWeight="SemiBold" Margin="0,10,0,0" />
-                <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" Text="{Binding BillToAddress}" Margin="0,10,0,0" TextWrapping="Wrap" />
-
-                <TextBlock Grid.Row="3" Text="Total:" FontWeight="SemiBold" Margin="0,10,0,0" />
-                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding TotalAmount, StringFormat=N2}" Margin="0,10,12,0" />
-                <TextBlock Grid.Row="3" Grid.Column="2" Text="Signed Order:" FontWeight="SemiBold" Margin="0,10,0,0" />
-                <TextBlock Grid.Row="3" Grid.Column="3" Text="{Binding SignedOrderFileName}" Margin="0,10,0,0" TextWrapping="Wrap" />
+                        <Border Grid.Column="1"
+                                Background="#FFFFFF"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="14,10"
+                                VerticalAlignment="Center">
+                            <StackPanel>
+                                <TextBlock Text="Total"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           HorizontalAlignment="Right" />
+                                <TextBlock Text="{Binding TotalAmount, StringFormat=R {0:N2}}"
+                                           Margin="0,4,0,0"
+                                           FontSize="22"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Right" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
 
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2.1*" />
-                <ColumnDefinition Width="18" />
-                <ColumnDefinition Width="1.2*" />
+                <ColumnDefinition Width="2.15*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="1.15*" />
             </Grid.ColumnDefinitions>
 
-            <Border BorderBrush="#D6D6D6"
-                    BorderThickness="1"
-                    Padding="8">
-                <DataGrid ItemsSource="{Binding Lines}"
-                          AutoGenerateColumns="False"
-                          CanUserAddRows="False"
-                          IsReadOnly="True"
-                          HeadersVisibility="Column"
-                          RowHeaderWidth="0">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity}" Width="90" />
-                        <DataGridTextColumn Header="Part No." Binding="{Binding PartNumber}" Width="140" />
-                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" />
-                        <DataGridTextColumn Header="Unit Price" Binding="{Binding UnitPrice, StringFormat=N2}" Width="120" />
-                        <DataGridTextColumn Header="Line Total" Binding="{Binding LineTotal, StringFormat=N2}" Width="120" />
-                    </DataGrid.Columns>
-                </DataGrid>
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="20,18,20,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="Order Line Items"
+                                       Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="A read-only view of the saved order so you can confirm what was placed before processing documents."
+                                       Margin="0,6,0,0"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Border Grid.Column="1"
+                                Background="{StaticResource CardTintBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="12,8"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Lines.Count, StringFormat={}{0} line items}"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                        </Border>
+                    </Grid>
+
+                    <DataGrid Grid.Row="1"
+                              Margin="16,18,16,16"
+                              ItemsSource="{Binding Lines}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Quantity"
+                                                Binding="{Binding Quantity, StringFormat={}{0:0}}"
+                                                Width="90" />
+                            <DataGridTextColumn Header="Part No."
+                                                Binding="{Binding PartNumber}"
+                                                Width="150" />
+                            <DataGridTextColumn Header="Description"
+                                                Binding="{Binding Description}"
+                                                Width="*" />
+                            <DataGridTextColumn Header="Unit Price"
+                                                Binding="{Binding UnitPrice, StringFormat=N2}"
+                                                Width="130" />
+                            <DataGridTextColumn Header="Line Total"
+                                                Binding="{Binding LineTotal, StringFormat=N2}"
+                                                Width="130" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
             </Border>
 
             <Border Grid.Column="2"
-                    BorderBrush="#D6D6D6"
-                    BorderThickness="1"
-                    Padding="14">
+                    Style="{StaticResource CardBorderStyle}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <TextBlock Text="Selected Order Workflow"
-                                   FontSize="18"
-                                   FontWeight="Bold" />
-                        <TextBlock Text="Manage approval, documents, and deletion for this order from one place."
-                                   Margin="0,4,0,14"
-                                   Foreground="#666666"
+                        <TextBlock Text="Workflow &amp; Documents"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="Progress this order, upload supporting documents, and keep the full file trail attached to the order."
+                                   Margin="0,6,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
                                    TextWrapping="Wrap" />
 
-                        <Border Padding="12"
-                                Background="#F7F7F7"
-                                BorderBrush="#E0E0E0"
-                                BorderThickness="1">
+                        <Border Margin="0,20,0,0"
+                                Background="{StaticResource AccentSoftBrush}"
+                                BorderBrush="#C9E7EF"
+                                BorderThickness="1"
+                                CornerRadius="16"
+                                Padding="16">
                             <StackPanel>
-                                <TextBlock Text="{Binding OrderNumber}"
-                                           FontSize="16"
+                                <TextBlock Text="Current Workflow Status"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource AccentBrush}" />
+                                <TextBlock Text="{Binding OrderStatus}"
+                                           Margin="0,8,0,0"
+                                           FontSize="20"
                                            FontWeight="Bold" />
-                                <TextBlock Text="{Binding CompanyName}"
+                                <TextBlock Text="{Binding ApprovalStatus, StringFormat=Approval: {0}}"
+                                           Margin="0,8,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding RejectionStatus, StringFormat=Rejection: {0}}"
                                            Margin="0,4,0,0"
-                                           TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding Reference, StringFormat=Reference: {0}}"
-                                           Margin="0,6,0,0"
-                                           Foreground="#555555"
-                                           TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding OrderStatus, StringFormat=Current Status: {0}}"
-                                           Margin="0,6,0,0"
-                                           Foreground="#555555" />
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
                             </StackPanel>
                         </Border>
 
                         <TextBlock Text="Status Actions"
-                                   FontWeight="Bold"
-                                   Margin="0,16,0,8" />
+                                   Margin="0,20,0,10"
+                                   Style="{StaticResource SectionTitleStyle}" />
 
-                        <Grid Margin="0,0,0,6">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Manager and Director Approval"
-                                       VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding ApprovalStatus}"
-                                       VerticalAlignment="Center"
-                                       Foreground="#555555" />
-                        </Grid>
                         <Button Content="Mark Approved"
-                                Height="32"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Margin="0,0,0,10"
                                 Click="OnMarkApproved" />
 
-                        <Grid Margin="0,14,0,6">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Rejected"
-                                       VerticalAlignment="Center" />
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding RejectionStatus}"
-                                       VerticalAlignment="Center"
-                                       Foreground="#555555" />
-                        </Grid>
                         <Button Content="Mark Rejected"
-                                Height="32"
+                                Style="{StaticResource DangerButtonStyle}"
                                 Click="OnMarkRejected" />
 
                         <TextBlock Text="Documents"
-                                   FontWeight="Bold"
-                                   Margin="0,18,0,8" />
+                                   Margin="0,24,0,10"
+                                   Style="{StaticResource SectionTitleStyle}" />
 
-                        <TextBlock Text="Signed Order"
-                                   FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding SignedOrderFileName}"
-                                   Margin="0,4,0,8"
-                                   Foreground="#555555"
-                                   TextWrapping="Wrap" />
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="Upload Signed Order"
-                                    Width="150"
-                                    Height="32"
-                                    Margin="0,0,8,0"
-                                    Click="OnUploadSignedOrder" />
-                            <Button Content="Open"
-                                    Width="80"
-                                    Height="32"
-                                    IsEnabled="{Binding HasSignedOrder}"
-                                    Click="OnOpenSignedOrder" />
-                        </StackPanel>
+                        <Border Background="{StaticResource CardTintBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="16"
+                                Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Signed Order"
+                                           FontWeight="Bold" />
+                                <TextBlock Text="{Binding SignedOrderFileName}"
+                                           Margin="0,6,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           TextWrapping="Wrap" />
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="110" />
+                                    </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Invoice"
-                                   FontWeight="SemiBold"
-                                   Margin="0,16,0,0" />
-                        <TextBlock Text="{Binding InvoiceFileName}"
-                                   Margin="0,4,0,8"
-                                   Foreground="#555555"
-                                   TextWrapping="Wrap" />
-                        <StackPanel Orientation="Horizontal">
-                            <Button Content="Upload Invoice"
-                                    Width="150"
-                                    Height="32"
-                                    Margin="0,0,8,0"
-                                    Click="OnUploadInvoice" />
-                            <Button Content="Open"
-                                    Width="80"
-                                    Height="32"
-                                    IsEnabled="{Binding HasInvoice}"
-                                    Click="OnOpenInvoice" />
-                        </StackPanel>
+                                    <Button Content="Upload Signed Order"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Click="OnUploadSignedOrder" />
+                                    <Button Grid.Column="2"
+                                            Content="Open"
+                                            IsEnabled="{Binding HasSignedOrder}"
+                                            Click="OnOpenSignedOrder" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
 
-                        <TextBlock Text="Order Maintenance"
-                                   FontWeight="Bold"
-                                   Margin="0,18,0,8" />
-                        <TextBlock Text="Orders can be deleted until they reach the completed state."
-                                   Margin="0,0,0,8"
-                                   Foreground="#666666"
-                                   TextWrapping="Wrap" />
-                        <Button Content="Delete Order"
-                                Height="32"
-                                IsEnabled="{Binding CanDelete}"
-                                Click="OnDeleteOrder" />
+                        <Border Margin="0,14,0,0"
+                                Background="{StaticResource CardTintBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="16"
+                                Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Invoice"
+                                           FontWeight="Bold" />
+                                <TextBlock Text="{Binding InvoiceFileName}"
+                                           Margin="0,6,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           TextWrapping="Wrap" />
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="110" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Button Content="Upload Invoice"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Click="OnUploadInvoice" />
+                                    <Button Grid.Column="2"
+                                            Content="Open"
+                                            IsEnabled="{Binding HasInvoice}"
+                                            Click="OnOpenInvoice" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Margin="0,20,0,0"
+                                Background="{StaticResource DangerSoftBrush}"
+                                BorderBrush="#F2C6C6"
+                                BorderThickness="1"
+                                CornerRadius="16"
+                                Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Order Maintenance"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource DangerDarkBrush}" />
+                                <TextBlock Text="Orders can only be deleted before they reach the completed state."
+                                           Margin="0,8,0,0"
+                                           Foreground="{StaticResource DangerDarkBrush}"
+                                           TextWrapping="Wrap" />
+                                <Button Content="Delete Order"
+                                        Margin="0,14,0,0"
+                                        Style="{StaticResource DangerButtonStyle}"
+                                        IsEnabled="{Binding CanDelete}"
+                                        Click="OnDeleteOrder" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
         </Grid>
 
-        <StackPanel Grid.Row="3"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,16,0,0">
-            <Button Content="Close"
-                    Width="100"
-                    Height="32"
-                    Click="OnCloseWindow" />
-        </StackPanel>
+        <Border Grid.Row="3"
+                Margin="0,18,0,0"
+                Style="{StaticResource CardBorderStyle}">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                <Button Content="Close"
+                        Width="110"
+                        Margin="0,0,10,0"
+                        Click="OnCloseWindow" />
+                <Button Content="Export to PDF"
+                        Width="140"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Click="OnExportPdf" />
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

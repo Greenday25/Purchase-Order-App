@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using PurchaseOrderApp.Models;
 using PurchaseOrderApp.Data;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -16,10 +18,14 @@ namespace PurchaseOrderApp.ViewModels
     public partial class MainViewModel : ObservableObject
     {
         public sealed record StoredOrderDocument(string FileName, byte[] Content);
+        private ObservableCollection<PurchaseOrderLine>? observedLines;
 
-        private const string CarsOrderPrefix = "CARS";
+        private const string CapitalAirCompanyName = "CAPITAL AIR (Pty) Ltd";
+        private const string ReactionServicesOrderPrefix = "CARS";
+        private const string SecurityOperationsCompanyName = "Capital Air Security Operations (Pty) Ltd";
+        private const string SecurityOperationsOrderPrefix = "CASO";
         private const int OrderSequenceDigits = 5;
-        private const int OrderSequenceStartingValue = 90;
+        private const int OrderSequenceStartingValue = 100;
         private const int NameDisplayFormat = 3;
         private const string ReactionServicesCompanyName = "Capital Air Reaction Services CC";
         private const string LegacyReactionServicesCompanyName = "Capital Air Reaction Services (Pty) Ltd";
@@ -27,7 +33,7 @@ namespace PurchaseOrderApp.ViewModels
         [
             new()
             {
-                Name = "CAPITAL AIR (Pty) Ltd",
+                Name = CapitalAirCompanyName,
                 Address = "P.O. BOX 18009, RAND AIRPORT 1419, GERMISTON, SOUTH AFRICA",
                 Phone = "+27 11 827 0335 / 82 2634/2840",
                 Email = "info@capitalair.com"
@@ -41,7 +47,7 @@ namespace PurchaseOrderApp.ViewModels
             },
             new()
             {
-                Name = "Capital Air Security Operations (Pty) Ltd",
+                Name = SecurityOperationsCompanyName,
                 Address = "P.O. BOX 18009, RAND AIRPORT 1419, GERMISTON, SOUTH AFRICA",
                 Phone = "+27 11 827 0335 / 82 2634/2840",
                 Email = "info@capitalair.com"
@@ -55,7 +61,6 @@ namespace PurchaseOrderApp.ViewModels
         public MainViewModel()
         {
             InitializeModel();
-            AddSampleLine();
             LoadOrderHistory();
         }
 
@@ -66,6 +71,7 @@ namespace PurchaseOrderApp.ViewModels
             EnsureDatabaseSchema(db);
 
             EnsureDefaultCompanies(db);
+            NormalizeExistingOrderNumbers(db);
 
             Vendors = new ObservableCollection<Vendor>(db.Vendors.ToList());
             SelectedVendor = Vendors.FirstOrDefault();
@@ -77,13 +83,14 @@ namespace PurchaseOrderApp.ViewModels
                 Reference = "CARS OPS OFFICE",
                 BillTo = "ALBERTON HARDWARE",
                 BillToAddress = "",
+                IncludeVat = true,
                 VATPercent = 15m,
                 VendorId = Vendors[0]?.VendorId ?? 0,
                 Vendor = Vendors[0],
                 Lines = new ObservableCollection<PurchaseOrderLine>().ToList()
             };
 
-            Lines = new ObservableCollection<PurchaseOrderLine>(CurrentOrder.Lines);
+            SetLinesCollection(new ObservableCollection<PurchaseOrderLine>(CurrentOrder.Lines));
             RefreshOrderNumber(db);
         }
 
@@ -151,18 +158,6 @@ namespace PurchaseOrderApp.ViewModels
             }
         }
 
-        private void AddSampleLine()
-        {
-            Lines.Add(new PurchaseOrderLine { Quantity = 2, PartNumber = "", Description = "PLASCON BRILLIANT WHITE", UnitPrice = 2098.00m });
-            Lines.Add(new PurchaseOrderLine { Quantity = 1, PartNumber = "", Description = "ROLLER TRAY SET PREMIUM", UnitPrice = 152.00m });
-            Lines.Add(new PurchaseOrderLine { Quantity = 1, PartNumber = "", Description = "POLY POLYFILLA EXTERIOR", UnitPrice = 51.85m });
-            Lines.Add(new PurchaseOrderLine { Quantity = 1, PartNumber = "", Description = "ROLLER CLASSIC HAMILTON TRAYSET", UnitPrice = 89.25m });
-            Lines.Add(new PurchaseOrderLine { Quantity = 5, PartNumber = "", Description = "MASKING TAPE 60 DEGREE", UnitPrice = 68.00m });
-            Lines.Add(new PurchaseOrderLine { Quantity = 2, PartNumber = "", Description = "ROLLER CLASSIC HAMILTON REFILL 225ML", UnitPrice = 100.30m });
-
-            RefreshTotals();
-        }
-
         [ObservableProperty]
         private ObservableCollection<Vendor> vendors;
 
@@ -175,6 +170,11 @@ namespace PurchaseOrderApp.ViewModels
             {
                 CurrentOrder.Vendor = value;
                 CurrentOrder.VendorId = value.VendorId;
+
+                if (CurrentOrder.PurchaseOrderId <= 0)
+                {
+                    RefreshOrderNumber();
+                }
             }
         }
 
@@ -192,6 +192,10 @@ namespace PurchaseOrderApp.ViewModels
 
         [ObservableProperty]
         private decimal totalAmount;
+
+        public string VatDisplayLabel => (CurrentOrder?.IncludeVat ?? true)
+            ? $"VAT ({(CurrentOrder?.VATPercent ?? 0m):0.##}%)"
+            : "VAT Not Included";
 
         [ObservableProperty]
         private ObservableCollection<OrderHistoryItem> orderHistory = [];
@@ -337,6 +341,68 @@ namespace PurchaseOrderApp.ViewModels
             };
         }
 
+        public bool LoadExistingOrder(int orderId)
+        {
+            using var db = new PurchaseOrderContext();
+            EnsureDatabaseSchema(db);
+
+            var order = db.PurchaseOrders
+                .AsNoTracking()
+                .Include(item => item.Vendor)
+                .Include(item => item.Lines)
+                .FirstOrDefault(item => item.PurchaseOrderId == orderId);
+
+            if (order == null)
+            {
+                return false;
+            }
+
+            Vendors = new ObservableCollection<Vendor>(db.Vendors.AsNoTracking().ToList());
+            var selectedVendor = Vendors.FirstOrDefault(item => item.VendorId == order.VendorId)
+                ?? Vendors.FirstOrDefault(item => string.Equals(item.Name, order.Vendor?.Name, StringComparison.OrdinalIgnoreCase))
+                ?? order.Vendor;
+
+            var copiedLines = order.Lines
+                .Select(line => new PurchaseOrderLine
+                {
+                    PurchaseOrderLineId = line.PurchaseOrderLineId,
+                    PurchaseOrderId = line.PurchaseOrderId,
+                    Quantity = line.Quantity,
+                    PartNumber = line.PartNumber ?? string.Empty,
+                    Description = line.Description ?? string.Empty,
+                    UnitPrice = line.UnitPrice
+                })
+                .ToList();
+
+            CurrentOrder = new PurchaseOrder
+            {
+                PurchaseOrderId = order.PurchaseOrderId,
+                OrderNumber = order.OrderNumber,
+                Date = order.Date,
+                Reference = order.Reference,
+                VendorId = selectedVendor?.VendorId ?? order.VendorId,
+                Vendor = selectedVendor ?? order.Vendor,
+                BillTo = order.BillTo,
+                BillToAddress = order.BillToAddress,
+                IncludeVat = order.IncludeVat,
+                VATPercent = order.VATPercent,
+                ManagerApprovedAt = order.ManagerApprovedAt,
+                DirectorApprovedAt = order.DirectorApprovedAt,
+                SupplierCopySentAt = order.SupplierCopySentAt,
+                RejectedAt = order.RejectedAt,
+                SignedOrderFileName = order.SignedOrderFileName,
+                SignedOrderContent = order.SignedOrderContent,
+                InvoiceFileName = order.InvoiceFileName,
+                InvoiceContent = order.InvoiceContent,
+                Lines = copiedLines
+            };
+
+            SelectedVendor = selectedVendor ?? Vendors.FirstOrDefault();
+            SetLinesCollection(new ObservableCollection<PurchaseOrderLine>(copiedLines));
+            RefreshTotals();
+            return true;
+        }
+
         [RelayCommand]
         public void SavePurchaseOrder()
         {
@@ -356,6 +422,7 @@ namespace PurchaseOrderApp.ViewModels
                 Reference = CurrentOrder.Reference,
                 BillTo = CurrentOrder.BillTo,
                 BillToAddress = CurrentOrder.BillToAddress,
+                IncludeVat = CurrentOrder.IncludeVat,
                 VATPercent = CurrentOrder.VATPercent,
                 VendorId = CurrentOrder.VendorId,
                 Lines = Lines.Select(l => new PurchaseOrderLine
@@ -375,14 +442,17 @@ namespace PurchaseOrderApp.ViewModels
 
         private void RefreshTotals()
         {
-            SubTotal = Math.Round(Lines.Sum(l => l.Quantity * l.UnitPrice), 2);
-            VatAmount = Math.Round(SubTotal * (CurrentOrder?.VATPercent ?? 0) / 100m, 2);
+            SubTotal = Math.Round(Lines.Sum(l => l.LineTotal), 2);
+            var appliedVatPercent = (CurrentOrder?.IncludeVat ?? true) ? (CurrentOrder?.VATPercent ?? 0m) : 0m;
+            VatAmount = Math.Round(SubTotal * appliedVatPercent / 100m, 2);
             TotalAmount = Math.Round(SubTotal + VatAmount, 2);
 
             if (CurrentOrder != null)
             {
                 CurrentOrder.Lines = Lines.ToList();
             }
+
+            OnPropertyChanged(nameof(VatDisplayLabel));
         }
 
         public void RefreshOrderNumber()
@@ -405,7 +475,14 @@ namespace PurchaseOrderApp.ViewModels
                 return;
             }
 
-            CurrentOrder.OrderNumber = GenerateNextOrderNumber(db, CurrentOrder.Reference);
+            var companyName = CurrentOrder.Vendor?.Name
+                ?? SelectedVendor?.Name
+                ?? db.Vendors
+                    .Where(vendor => vendor.VendorId == CurrentOrder.VendorId)
+                    .Select(vendor => vendor.Name)
+                    .FirstOrDefault();
+
+            CurrentOrder.OrderNumber = GenerateNextOrderNumber(db, companyName);
             OnPropertyChanged(nameof(CurrentOrder));
         }
 
@@ -450,6 +527,7 @@ namespace PurchaseOrderApp.ViewModels
         private static void EnsureDatabaseSchema(PurchaseOrderContext db)
         {
             var columnNames = GetPurchaseOrderColumnNames(db);
+            AddColumnIfMissing(db, columnNames, "IncludeVat", "INTEGER NOT NULL DEFAULT 1");
             AddColumnIfMissing(db, columnNames, "ManagerApprovedAt", "TEXT NULL");
             AddColumnIfMissing(db, columnNames, "DirectorApprovedAt", "TEXT NULL");
             AddColumnIfMissing(db, columnNames, "SupplierCopySentAt", "TEXT NULL");
@@ -502,6 +580,7 @@ namespace PurchaseOrderApp.ViewModels
 
             var sql = columnName switch
             {
+                "IncludeVat" => "ALTER TABLE PurchaseOrders ADD COLUMN IncludeVat INTEGER NOT NULL DEFAULT 1",
                 "ManagerApprovedAt" => "ALTER TABLE PurchaseOrders ADD COLUMN ManagerApprovedAt TEXT NULL",
                 "DirectorApprovedAt" => "ALTER TABLE PurchaseOrders ADD COLUMN DirectorApprovedAt TEXT NULL",
                 "SupplierCopySentAt" => "ALTER TABLE PurchaseOrders ADD COLUMN SupplierCopySentAt TEXT NULL",
@@ -639,9 +718,47 @@ namespace PurchaseOrderApp.ViewModels
             return searchTerms.All(term => searchableText.Contains(term.ToUpperInvariant(), StringComparison.Ordinal));
         }
 
-        private static string GenerateNextOrderNumber(PurchaseOrderContext db, string? reference)
+        private static void NormalizeExistingOrderNumbers(PurchaseOrderContext db)
         {
-            var prefix = GetOrderPrefix(reference);
+            var orders = db.PurchaseOrders
+                .Include(order => order.Vendor)
+                .OrderBy(order => order.PurchaseOrderId)
+                .ToList();
+
+            if (orders.Count == 0)
+            {
+                return;
+            }
+
+            var nextSequenceByPrefix = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            var hasChanges = false;
+
+            foreach (var order in orders)
+            {
+                var prefix = GetOrderPrefix(order.Vendor?.Name);
+                var nextSequence = nextSequenceByPrefix.TryGetValue(prefix, out var existingSequence)
+                    ? existingSequence
+                    : OrderSequenceStartingValue;
+
+                var expectedOrderNumber = $"{prefix}{nextSequence.ToString($"D{OrderSequenceDigits}")}";
+                if (!string.Equals(order.OrderNumber, expectedOrderNumber, StringComparison.OrdinalIgnoreCase))
+                {
+                    order.OrderNumber = expectedOrderNumber;
+                    hasChanges = true;
+                }
+
+                nextSequenceByPrefix[prefix] = nextSequence + 1;
+            }
+
+            if (hasChanges)
+            {
+                db.SaveChanges();
+            }
+        }
+
+        private static string GenerateNextOrderNumber(PurchaseOrderContext db, string? companyName)
+        {
+            var prefix = GetOrderPrefix(companyName);
             var nextSequence = db.PurchaseOrders
                 .AsEnumerable()
                 .Select(order => ExtractOrderSequence(order.OrderNumber, prefix))
@@ -664,12 +781,17 @@ namespace PurchaseOrderApp.ViewModels
             return int.TryParse(suffix, out var sequence) ? sequence : -1;
         }
 
-        private static string GetOrderPrefix(string? reference)
+        private static string GetOrderPrefix(string? companyName)
         {
-            if (!string.IsNullOrWhiteSpace(reference) &&
-                reference.TrimStart().StartsWith(CarsOrderPrefix, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(companyName, ReactionServicesCompanyName, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(companyName, LegacyReactionServicesCompanyName, StringComparison.OrdinalIgnoreCase))
             {
-                return CarsOrderPrefix;
+                return ReactionServicesOrderPrefix;
+            }
+
+            if (string.Equals(companyName, SecurityOperationsCompanyName, StringComparison.OrdinalIgnoreCase))
+            {
+                return SecurityOperationsOrderPrefix;
             }
 
             var condensedName = NormalizePrefix(GetCurrentUserDisplayName());
@@ -699,6 +821,62 @@ namespace PurchaseOrderApp.ViewModels
             return GetUserNameEx(NameDisplayFormat, buffer, ref capacity) && !string.IsNullOrWhiteSpace(buffer.ToString())
                 ? buffer.ToString().Trim()
                 : Environment.UserName;
+        }
+
+        private void SetLinesCollection(ObservableCollection<PurchaseOrderLine> newLines)
+        {
+            DetachLineCollectionHandlers();
+            Lines = newLines;
+            observedLines = newLines;
+            observedLines.CollectionChanged += OnLinesCollectionChanged;
+
+            foreach (var line in observedLines)
+            {
+                line.PropertyChanged += OnLinePropertyChanged;
+            }
+        }
+
+        private void DetachLineCollectionHandlers()
+        {
+            if (observedLines == null)
+            {
+                return;
+            }
+
+            observedLines.CollectionChanged -= OnLinesCollectionChanged;
+            foreach (var line in observedLines)
+            {
+                line.PropertyChanged -= OnLinePropertyChanged;
+            }
+        }
+
+        private void OnLinesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.OldItems != null)
+            {
+                foreach (PurchaseOrderLine line in e.OldItems)
+                {
+                    line.PropertyChanged -= OnLinePropertyChanged;
+                }
+            }
+
+            if (e.NewItems != null)
+            {
+                foreach (PurchaseOrderLine line in e.NewItems)
+                {
+                    line.PropertyChanged += OnLinePropertyChanged;
+                }
+            }
+
+            RefreshTotals();
+        }
+
+        private void OnLinePropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(PurchaseOrderLine.Quantity) or nameof(PurchaseOrderLine.UnitPrice) or nameof(PurchaseOrderLine.LineTotal))
+            {
+                RefreshTotals();
+            }
         }
     }
 }

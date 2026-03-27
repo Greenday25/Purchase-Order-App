@@ -46,6 +46,7 @@ public partial class OrderEditorWindow : Window
     private const double OrderInfoBoxMinWidth = OrderInfoBoxWidth;
     private const double OrderInfoBoxMaxWidth = OrderInfoBoxWidth;
     private const double DocumentBoxGapWidth = 8;
+    private const double PrintHeaderBrandingColumnWidth = PrintDocumentContentWidth - OrderInfoBoxWidth - DocumentBoxGapWidth;
     private const double RecipientOrderGapWidth = 26;
     private const double PostInvoiceTopOffset = 48;
     private const double PrintBorderThickness = 0.7;
@@ -59,6 +60,7 @@ public partial class OrderEditorWindow : Window
     private const double PrintPostInvoiceLabelWidth = 42;
     private const double PrintBoxRowMinHeight = 22;
     private const double PrintRecipientRowMinHeight = (PrintBoxRowMinHeight * 3) / 4;
+    private const double PrintOrderInfoBottomRowMinHeight = PrintBoxRowMinHeight + 8;
     private const double PrintItemCellPadding = 2;
     private const double FooterSectionTopSpacing = 20;
     private const double HeaderToBoxesSpacing = 16;
@@ -71,6 +73,7 @@ public partial class OrderEditorWindow : Window
     private const float PdfPostInvoiceLineLeading = 6f;
     private const float PdfBoxRowMinHeight = 21f;
     private const float PdfRecipientRowMinHeight = (PdfBoxRowMinHeight * 3f) / 4f;
+    private const float PdfOrderInfoBottomRowMinHeight = PdfBoxRowMinHeight + 8f;
     private const float PdfItemHeaderPadding = 3f;
     private const float PdfItemRowPadding = 1.5f;
     private const float PdfItemHeaderMinHeight = 22f;
@@ -95,6 +98,12 @@ public partial class OrderEditorWindow : Window
         InitializeComponent();
     }
 
+    public OrderEditorWindow(MainViewModel viewModel)
+        : this()
+    {
+        DataContext = viewModel;
+    }
+
     private void OnCloseWindow(object sender, RoutedEventArgs e)
     {
         Close();
@@ -105,6 +114,14 @@ public partial class OrderEditorWindow : Window
         if (DataContext is MainViewModel vm)
         {
             vm.RefreshOrderNumber();
+        }
+    }
+
+    private void OnIncludeVatChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.UpdateTotals();
         }
     }
 
@@ -381,7 +398,8 @@ public partial class OrderEditorWindow : Window
             CellSpacing = 0,
             Margin = new Thickness(0, 0, 0, 4)
         };
-        headerTable.Columns.Add(new TableColumn { Width = new GridLength(1, GridUnitType.Star) });
+        // Keep the left edge of the post-invoice box aligned with the order number box below.
+        headerTable.Columns.Add(new TableColumn { Width = new GridLength(PrintHeaderBrandingColumnWidth) });
         headerTable.Columns.Add(new TableColumn { Width = new GridLength(DocumentBoxGapWidth) });
         headerTable.Columns.Add(new TableColumn { Width = new GridLength(PostInvoiceHeaderColumnWidth) });
 
@@ -596,7 +614,7 @@ public partial class OrderEditorWindow : Window
         {
             CreatePrintRow($"ORDER: {vm.CurrentOrder.OrderNumber}", TextAlignment.Left, true, System.Windows.FontWeights.Bold),
             CreatePrintRow($"DATE: {vm.CurrentOrder.Date:dd/MM/yyyy}", TextAlignment.Left, true),
-            CreatePrintRow($"REF: {vm.CurrentOrder.Reference}", TextAlignment.Left, false)
+            CreatePrintRow($"REF: {vm.CurrentOrder.Reference}", TextAlignment.Left, false, minHeight: PrintOrderInfoBottomRowMinHeight)
         };
 
         for (int i = 0; i < orderRows.Length; i++)
@@ -622,6 +640,11 @@ public partial class OrderEditorWindow : Window
     private static string FormatOrderAmount(decimal amount)
     {
         return amount.ToString("N2", OrderAmountNumberFormat);
+    }
+
+    private static string FormatQuantity(decimal quantity)
+    {
+        return quantity.ToString("0");
     }
 
     private static Block CreatePrintFooterBlock()
@@ -667,7 +690,7 @@ public partial class OrderEditorWindow : Window
 
     private static void AddPdfFooterBlock(Document document, PdfFont font)
     {
-        var signatureTable = new iTextTable(new float[] { 170f, 1f }).UseAllAvailableWidth().SetMarginTop((float)FooterSectionTopSpacing).SetMarginBottom(4);
+        var signatureTable = new iTextTable(new float[] { 170f, 1f }).UseAllAvailableWidth().SetMarginTop(8).SetMarginBottom(2);
         signatureTable.SetBorder(iText.Layout.Borders.Border.NO_BORDER);
         signatureTable.AddCell(new iTextCell()
             .Add(new iTextParagraph(AuthorisedSignatureLabel).SetFont(font).SetFontSize(11))
@@ -687,14 +710,16 @@ public partial class OrderEditorWindow : Window
         document.Add(new iTextParagraph(QuoteOrderFooterText)
             .SetFont(font)
             .SetFontSize(10)
-            .SetMarginTop(0)
+            .SetMarginTop(4)
             .SetMarginBottom(0));
     }
 
     private static (decimal VatAmount, decimal TotalAmount) GetOrderDocumentTotals(MainViewModel vm)
     {
-        var subTotal = Math.Round(vm.Lines.Sum(line => line.UnitPrice), 2);
-        var vatAmount = Math.Round(subTotal * (vm.CurrentOrder?.VATPercent ?? 0m) / 100m, 2);
+        var subTotal = Math.Round(vm.Lines.Sum(line => line.LineTotal), 2);
+        var vatAmount = (vm.CurrentOrder?.IncludeVat ?? true)
+            ? Math.Round(subTotal * (vm.CurrentOrder?.VATPercent ?? 0m) / 100m, 2)
+            : 0m;
         return (vatAmount, Math.Round(subTotal + vatAmount, 2));
     }
 
@@ -716,6 +741,11 @@ public partial class OrderEditorWindow : Window
 
     private void OnExportPdf(object sender, RoutedEventArgs e)
     {
+        ExportCurrentOrderToPdf();
+    }
+
+    public void ExportCurrentOrderToPdf()
+    {
         try
         {
             if (DataContext is not MainViewModel vm) return;
@@ -727,6 +757,9 @@ public partial class OrderEditorWindow : Window
             using var pdfWriter = new PdfWriter(filePath);
             using var pdfDocument = new PdfDocument(pdfWriter);
             using var document = new Document(pdfDocument);
+
+            // Set margins: reduced top margin to fit on one page, others standard (1 inch = 72 points)
+            document.SetMargins(18, 72, 72, 72);
 
             var font = CreatePdfDocumentFont("arial.ttf", StandardFonts.HELVETICA);
             var boldFont = CreatePdfDocumentFont("arialbd.ttf", StandardFonts.HELVETICA_BOLD);
@@ -745,7 +778,7 @@ public partial class OrderEditorWindow : Window
             var pdfContentWidth = pdfDocument.GetDefaultPageSize().GetWidth() - document.GetLeftMargin() - document.GetRightMargin();
             var pdfGapWidth = GetPdfScaledLayoutWidth(DocumentBoxGapWidth, pdfContentWidth);
             var pdfRecipientOrderGapWidth = GetPdfScaledLayoutWidth(RecipientOrderGapWidth, pdfContentWidth);
-            var pdfPostInvoiceBoxWidth = GetPdfScaledLayoutWidth(PostInvoiceBoxWidth, pdfContentWidth);
+            var pdfPostInvoiceBoxWidth = GetPdfOrderInfoBoxWidth(vm, font, boldFont);
             var pdfPostInvoiceHeaderColumnWidth = GetPdfScaledLayoutWidth(PostInvoiceHeaderColumnWidth, pdfContentWidth);
             var pdfOrderInfoBoxWidth = GetPdfScaledLayoutWidth(OrderInfoBoxWidth, pdfContentWidth);
             var pdfRecipientBoxWidth = GetPdfScaledLayoutWidth(PrintRecipientBoxWidth, pdfContentWidth);
@@ -782,6 +815,24 @@ public partial class OrderEditorWindow : Window
             var pdfPostInvoiceLabelWidth = Math.Min(GetPdfScaledLayoutWidth(PrintPostInvoiceLabelWidth, pdfContentWidth), pdfPostInvoiceBoxWidth - (PdfBoxPadding * 2));
             var pdfPostInvoiceValueWidth = Math.Max(0f, pdfPostInvoiceBoxWidth - (PdfBoxPadding * 2) - pdfPostInvoiceLabelWidth);
 
+            // Add branding and placeholder cell; the POST INVOICE TO box will be positioned absolutely
+            headerContentTable.AddCell(brandingCell);
+            headerContentTable.AddCell(new iTextCell().SetBorder(iText.Layout.Borders.Border.NO_BORDER));
+            headerContentTable.AddCell(new iTextCell().SetBorder(iText.Layout.Borders.Border.NO_BORDER));
+            document.Add(headerContentTable);
+
+            // Position the post-invoice box at a fixed X so its left edge lines up with the ORDER box
+            var pageSize = pdfDocument.GetDefaultPageSize();
+            // Anchor to the actual rendered order box width so the left edges match exactly.
+            var orderBoxLeftX = document.GetLeftMargin() + pdfContentWidth - GetPdfOrderInfoBoxWidth(vm, font, boldFont);
+            // Y coordinate (from bottom) for SetFixedPosition expects bottom-left origin; compute an approximate Y
+            var postInvoiceTopFromTop = document.GetTopMargin() + pdfPostInvoiceTopOffset; // distance from top edge
+            var postInvoiceY = pageSize.GetHeight() - postInvoiceTopFromTop; // top Y in user coords
+            // Use SetFixedPosition(page, x, yFromBottom, width). Keep the fixed width equal to the box width
+            // so iText does not reflow the table and nudge it sideways.
+            var estimatedHeight = 110f; // reasonable box height to position it; adjust if necessary
+            var postInvoiceYFromBottom = postInvoiceY - estimatedHeight;
+
             var postInvoiceBoxCell = new iTextCell()
                 .Add(new iTextParagraph("POST INVOICE TO:")
                     .SetFont(boldFont)
@@ -795,22 +846,15 @@ public partial class OrderEditorWindow : Window
                 .SetPaddingBottom(PdfPostInvoicePaddingVertical)
                 .SetBorder(border)
                 .SetVerticalAlignment(iText.Layout.Properties.VerticalAlignment.TOP);
+
             foreach (var line in postInvoiceLines)
             {
                 AddPdfPostInvoiceLine(postInvoiceBoxCell, line, font, boldFont, pdfPostInvoiceLabelWidth, pdfPostInvoiceValueWidth);
             }
             postInvoiceBox.AddCell(postInvoiceBoxCell);
 
-            var postInvoiceCell = new iTextCell()
-                .Add(postInvoiceBox)
-                .SetPadding(0)
-                .SetPaddingTop(pdfPostInvoiceTopOffset)
-                .SetBorder(iText.Layout.Borders.Border.NO_BORDER);
-
-            headerContentTable.AddCell(brandingCell);
-            headerContentTable.AddCell(new iTextCell().SetBorder(iText.Layout.Borders.Border.NO_BORDER));
-            headerContentTable.AddCell(postInvoiceCell);
-            document.Add(headerContentTable);
+            postInvoiceBox.SetFixedPosition(1, orderBoxLeftX, postInvoiceYFromBottom, pdfPostInvoiceBoxWidth);
+            document.Add(postInvoiceBox);
 
             // Bill To and Order Info section
             var infoLayoutTable = new iTextTable(iText.Layout.Properties.UnitValue.CreatePointArray(
@@ -832,7 +876,7 @@ public partial class OrderEditorWindow : Window
             orderInfoTable.SetHorizontalAlignment(iText.Layout.Properties.HorizontalAlignment.RIGHT);
             orderInfoTable.AddCell(CreatePdfStackedCell($"ORDER: {vm.CurrentOrder.OrderNumber}", boldFont, 10, iTextTextAlignment.LEFT, true));
             orderInfoTable.AddCell(CreatePdfStackedCell($"DATE: {vm.CurrentOrder.Date:dd/MM/yyyy}", font, 9, iTextTextAlignment.LEFT, false));
-            orderInfoTable.AddCell(CreatePdfStackedCell($"REF: {vm.CurrentOrder.Reference}", font, 9, iTextTextAlignment.LEFT, false));
+            orderInfoTable.AddCell(CreatePdfStackedCell($"REF: {vm.CurrentOrder.Reference}", font, 9, iTextTextAlignment.LEFT, false, PdfOrderInfoBottomRowMinHeight));
 
             infoLayoutTable.AddCell(new iTextCell().Add(recipientTable).SetBorder(iText.Layout.Borders.Border.NO_BORDER).SetPadding(0));
             infoLayoutTable.AddCell(new iTextCell().SetBorder(iText.Layout.Borders.Border.NO_BORDER));
@@ -841,7 +885,7 @@ public partial class OrderEditorWindow : Window
 
             // Items table
             var (documentVatAmount, documentTotalAmount) = GetOrderDocumentTotals(vm);
-            var itemsTable = new iTextTable(new float[] { 68, 94, 316, 68, 92 }).UseAllAvailableWidth().SetMarginTop(12).SetMarginBottom(6);
+            var itemsTable = new iTextTable(new float[] { 68, 94, 316, 68, 92 }).UseAllAvailableWidth().SetMarginTop(12).SetMarginBottom(2);
             var headerBorder = new SolidBorder(PdfBorderThickness);
 
             var qtyHeaderCell = new iTextCell()
@@ -896,7 +940,7 @@ public partial class OrderEditorWindow : Window
                 var cellBorder = new SolidBorder(PdfBorderThickness);
 
                 itemsTable.AddCell(new iTextCell()
-                    .Add(new iTextParagraph(line.Quantity.ToString()).SetFont(font).SetFontSize(9))
+                    .Add(new iTextParagraph(FormatQuantity(line.Quantity)).SetFont(font).SetFontSize(9))
                     .SetBorder(cellBorder)
                     .SetPadding(PdfItemRowPadding)
                     .SetMinHeight(PdfItemRowMinHeight)
@@ -922,7 +966,7 @@ public partial class OrderEditorWindow : Window
                     .SetTextAlignment(iTextTextAlignment.CENTER));
 
                 itemsTable.AddCell(new iTextCell()
-                    .Add(new iTextParagraph(FormatOrderAmount(line.UnitPrice)).SetFont(font).SetFontSize(9))
+                    .Add(new iTextParagraph(FormatOrderAmount(line.LineTotal)).SetFont(font).SetFontSize(9))
                     .SetBorder(cellBorder)
                     .SetPadding(PdfItemRowPadding)
                     .SetMinHeight(PdfItemRowMinHeight)
@@ -942,23 +986,42 @@ public partial class OrderEditorWindow : Window
                 }
             }
 
-            // VAT row
-            itemsTable.AddCell(new iTextCell(1, 3).SetBorder(border).Add(new iTextParagraph(" ")));
-            itemsTable.AddCell(new iTextCell()
-                .Add(new iTextParagraph("VAT").SetFont(font).SetFontSize(9))
-                .SetBorder(border)
-                .SetPadding(2)
-                .SetTextAlignment(iTextTextAlignment.CENTER));
-            itemsTable.AddCell(new iTextCell()
-                .Add(new iTextParagraph(FormatOrderAmount(documentVatAmount)).SetFont(font).SetFontSize(9))
-                .SetBorder(border)
-                .SetPadding(2)
-                .SetTextAlignment(iTextTextAlignment.RIGHT));
+            if (vm.CurrentOrder?.IncludeVat ?? true)
+            {
+                itemsTable.AddCell(new iTextCell()
+                    .Add(new iTextParagraph(" ").SetFont(font).SetFontSize(9))
+                    .SetBorder(border)
+                    .SetPadding(2)
+                    .SetMinHeight(PdfItemRowMinHeight));
+                itemsTable.AddCell(new iTextCell()
+                    .Add(new iTextParagraph(" ").SetFont(font).SetFontSize(9))
+                    .SetBorder(border)
+                    .SetPadding(2)
+                    .SetMinHeight(PdfItemRowMinHeight));
+                itemsTable.AddCell(new iTextCell()
+                    .Add(new iTextParagraph(" ").SetFont(font).SetFontSize(9))
+                    .SetBorder(border)
+                    .SetPadding(2)
+                    .SetMinHeight(PdfItemRowMinHeight));
+                itemsTable.AddCell(new iTextCell()
+                    .Add(new iTextParagraph("VAT").SetFont(font).SetFontSize(9))
+                    .SetBorder(border)
+                    .SetPadding(2)
+                    .SetTextAlignment(iTextTextAlignment.CENTER)
+                    .SetMinHeight(PdfItemRowMinHeight));
+                itemsTable.AddCell(new iTextCell()
+                    .Add(new iTextParagraph(FormatOrderAmount(documentVatAmount)).SetFont(font).SetFontSize(9))
+                    .SetBorder(border)
+                    .SetPadding(2)
+                    .SetTextAlignment(iTextTextAlignment.RIGHT)
+                    .SetMinHeight(PdfItemRowMinHeight));
+            }
 
-            // Total row
+            // Total row - no border on TOTAL AMOUNT R cell
+            var totalBorderNone = iText.Layout.Borders.Border.NO_BORDER;
             itemsTable.AddCell(new iTextCell(1, 4)
                 .Add(new iTextParagraph("TOTAL AMOUNT R").SetFont(boldFont).SetFontSize(9))
-                .SetBorder(border)
+                .SetBorder(totalBorderNone)
                 .SetPadding(2)
                 .SetTextAlignment(iTextTextAlignment.RIGHT));
             itemsTable.AddCell(new iTextCell()
@@ -1023,11 +1086,11 @@ public partial class OrderEditorWindow : Window
         foreach (var line in vm.Lines)
         {
             var itemRow = new TableRow();
-            itemRow.Cells.Add(new TableCell(new Paragraph(new Run(line.Quantity.ToString())) { TextAlignment = TextAlignment.Center, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(0, 0, PrintBorderThickness, PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
+            itemRow.Cells.Add(new TableCell(new Paragraph(new Run(FormatQuantity(line.Quantity))) { TextAlignment = TextAlignment.Center, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(0, 0, PrintBorderThickness, PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
             itemRow.Cells.Add(new TableCell(new Paragraph(new Run(line.PartNumber ?? string.Empty)) { FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(0, 0, PrintBorderThickness, PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
             itemRow.Cells.Add(new TableCell(new Paragraph(new Run(line.Description ?? string.Empty)) { FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(0, 0, PrintBorderThickness, PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
             itemRow.Cells.Add(new TableCell(new Paragraph(new Run(string.Empty)) { TextAlignment = TextAlignment.Center, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(0, 0, PrintBorderThickness, PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
-            itemRow.Cells.Add(new TableCell(new Paragraph(new Run(FormatOrderAmount(line.UnitPrice))) { TextAlignment = TextAlignment.Right, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
+            itemRow.Cells.Add(new TableCell(new Paragraph(new Run(FormatOrderAmount(line.LineTotal))) { TextAlignment = TextAlignment.Right, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
             itemsGroup.Rows.Add(itemRow);
         }
 
@@ -1047,11 +1110,14 @@ public partial class OrderEditorWindow : Window
             itemsGroup.Rows.Add(blankRow);
         }
 
-        var totalRow = new TableRow();
-        totalRow.Cells.Add(new TableCell(new Paragraph(new Run(""))) { ColumnSpan = 3, BorderThickness = new Thickness(0) });
-        totalRow.Cells.Add(new TableCell(new Paragraph(new Run("VAT")) { TextAlignment = TextAlignment.Center, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
-        totalRow.Cells.Add(new TableCell(new Paragraph(new Run(FormatOrderAmount(documentVatAmount))) { TextAlignment = TextAlignment.Right, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
-        itemsGroup.Rows.Add(totalRow);
+        if (vm.CurrentOrder?.IncludeVat ?? true)
+        {
+            var totalRow = new TableRow();
+            totalRow.Cells.Add(new TableCell(new Paragraph(new Run(""))) { ColumnSpan = 3, BorderThickness = new Thickness(0) });
+            totalRow.Cells.Add(new TableCell(new Paragraph(new Run("VAT")) { TextAlignment = TextAlignment.Center, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
+            totalRow.Cells.Add(new TableCell(new Paragraph(new Run(FormatOrderAmount(documentVatAmount))) { TextAlignment = TextAlignment.Right, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
+            itemsGroup.Rows.Add(totalRow);
+        }
 
         var totalGrandRow = new TableRow();
         totalGrandRow.Cells.Add(new TableCell(new Paragraph(new Bold(new Run("TOTAL AMOUNT R"))) { TextAlignment = TextAlignment.Right, FontSize = 9 }) { ColumnSpan = 4, BorderBrush = Brushes.Black, BorderThickness = new Thickness(PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });

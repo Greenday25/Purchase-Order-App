@@ -142,6 +142,23 @@ public partial class OrderDetailsWindow : Window
         Close();
     }
 
+    private void OnExportPdf(object sender, RoutedEventArgs e)
+    {
+        var exportViewModel = new MainViewModel();
+        if (!exportViewModel.LoadExistingOrder(_purchaseOrderId))
+        {
+            MessageBox.Show("I couldn't load that order for PDF export.", "Export failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var exportWindow = new OrderEditorWindow(exportViewModel)
+        {
+            Owner = this
+        };
+
+        exportWindow.ExportCurrentOrderToPdf();
+    }
+
     private void OnCloseWindow(object sender, RoutedEventArgs e)
     {
         Close();

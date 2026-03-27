@@ -6,116 +6,180 @@
         xmlns:vm="clr-namespace:PurchaseOrderApp.ViewModels"
         mc:Ignorable="d"
         Title="Purchase Order Dashboard"
-        Height="760"
-        Width="1320">
+        Height="820"
+        Width="1400"
+        MinHeight="760"
+        MinWidth="1200">
 
     <Window.DataContext>
         <vm:MainViewModel />
     </Window.DataContext>
 
-    <Grid Margin="16">
+    <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <StackPanel Orientation="Horizontal">
-                <Image Source="Assets/logo.png"
-                       Width="110"
-                       Height="55"
-                       Stretch="Uniform"
-                       VerticalAlignment="Center"
-                       Margin="0,0,14,0" />
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="PURCHASE ORDER HISTORY" FontSize="24" FontWeight="Bold" />
-                    <TextBlock Text="Track approvals, upload signed orders, and store supplier invoices against each order."
-                               Foreground="#666666" />
-                </StackPanel>
-            </StackPanel>
-
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Content="Refresh History"
-                        Width="120"
-                        Command="{Binding RefreshHistoryCommand}" />
-            </StackPanel>
-        </Grid>
-
-        <Border Grid.Row="1"
-                Margin="0,18,0,12"
-                Padding="14"
-                Background="#F7F7F7"
-                BorderBrush="#D6D6D6"
-                BorderThickness="1">
+        <Border Style="{StaticResource HeroCardStyle}">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="340" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="112"
+                            Height="112"
+                            CornerRadius="22"
+                            Background="White"
+                            BorderBrush="#FFFFFF"
+                            BorderThickness="1"
+                            Padding="16"
+                            Margin="0,0,18,0">
+                        <Image Source="Assets/logo.png"
+                               Stretch="Uniform" />
+                    </Border>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="PURCHASE ORDER HISTORY"
+                                   FontSize="30"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="Track approvals, signed orders, invoices, and company-specific order sequences from one dashboard."
+                                   Margin="0,8,0,0"
+                                   FontSize="14"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Top">
+                    <Button Content="Refresh History"
+                            Width="150"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding RefreshHistoryCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,20,0,18"
+                Style="{StaticResource CardBorderStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="370" />
+                    <ColumnDefinition Width="24" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <StackPanel>
-                    <Grid Margin="0,0,0,6">
+                    <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
+
                         <TextBlock Text="Search Orders"
-                                   FontWeight="SemiBold"
+                                   Style="{StaticResource SectionTitleStyle}"
+                                   FontSize="18"
                                    VerticalAlignment="Center" />
+
                         <Button Grid.Column="1"
                                 Content="New Order"
-                                Width="120"
-                                Margin="10,0,0,0"
+                                Width="132"
+                                Margin="12,0,0,0"
+                                Style="{StaticResource PrimaryButtonStyle}"
                                 Click="OnNewOrder" />
                     </Grid>
-                    <TextBox Text="{Binding HistorySearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Height="30"
-                             VerticalContentAlignment="Center" />
+
                     <TextBlock Text="Search by order number, supplier, status, company, or reference."
-                               Margin="0,6,0,0"
-                               Foreground="#666666"
+                               Margin="0,0,0,10"
+                               Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
+
+                    <TextBox Text="{Binding HistorySearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Height="40"
+                             VerticalContentAlignment="Center"
+                             FontSize="14" />
                 </StackPanel>
 
-                <TextBlock Grid.Column="1"
-                           Text="Double-click an order in the history table to view its workflow, upload the signed order or supplier invoice, or delete it before completion."
-                           Foreground="#444444"
-                           TextWrapping="Wrap"
-                           VerticalAlignment="Center"
-                           Margin="18,0,0,0" />
+                <Border Grid.Column="2"
+                        Background="{StaticResource CardTintBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="14"
+                        Padding="18">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Workflow Tip"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="Double-click any order to open its full workflow, upload signed documents and invoices, export the PDF, or delete it before completion."
+                                   Margin="0,8,0,0"
+                                   FontSize="14"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
-        <Grid Grid.Row="2">
-            <Border BorderBrush="#D6D6D6"
-                    BorderThickness="1"
-                    Padding="8">
-                <DataGrid ItemsSource="{Binding FilteredOrderHistory}"
+        <Border Grid.Row="2"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Margin="20,18,20,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Text="Order History"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="Open any order to manage approvals, supporting documents, and PDF exports."
+                                   Margin="0,6,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </StackPanel>
+
+                    <Border Grid.Column="1"
+                            Background="{StaticResource CardTintBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="12,8"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="{Binding FilteredOrderHistory.Count, StringFormat={}{0} orders visible}"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </Border>
+                </Grid>
+
+                <DataGrid Grid.Row="1"
+                          Margin="16,18,16,16"
+                          ItemsSource="{Binding FilteredOrderHistory}"
                           SelectedItem="{Binding SelectedOrderHistoryItem}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           IsReadOnly="True"
-                          HeadersVisibility="Column"
-                          GridLinesVisibility="Horizontal"
-                          RowHeaderWidth="0"
                           MouseDoubleClick="OnHistoryRowDoubleClick">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Order #" Binding="{Binding OrderNumber}" Width="130" />
-                        <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="105" />
-                        <DataGridTextColumn Header="Company" Binding="{Binding CompanyName}" Width="250" />
-                        <DataGridTextColumn Header="Bill To" Binding="{Binding BillTo}" Width="180" />
+                        <DataGridTextColumn Header="Order #" Binding="{Binding OrderNumber}" Width="140" />
+                        <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="120" />
+                        <DataGridTextColumn Header="Company" Binding="{Binding CompanyName}" Width="300" />
+                        <DataGridTextColumn Header="Bill To" Binding="{Binding BillTo}" Width="220" />
                         <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="*" />
-                        <DataGridTextColumn Header="Status" Binding="{Binding OrderStatus}" Width="150" />
-                        <DataGridTextColumn Header="Total" Binding="{Binding TotalAmount, StringFormat=N2}" Width="110" />
+                        <DataGridTextColumn Header="Status" Binding="{Binding OrderStatus}" Width="170" />
+                        <DataGridTextColumn Header="Total" Binding="{Binding TotalAmount, StringFormat=R {0:N2}}" Width="120" />
                     </DataGrid.Columns>
                 </DataGrid>
-            </Border>
-        </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

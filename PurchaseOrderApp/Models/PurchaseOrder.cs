@@ -21,6 +21,7 @@ namespace PurchaseOrderApp.Models
         public string BillTo { get; set; }
         public string BillToAddress { get; set; }
 
+        public bool IncludeVat { get; set; } = true;
         public decimal VATPercent { get; set; } = 15m;
         public DateTime? ManagerApprovedAt { get; set; }
         public DateTime? DirectorApprovedAt { get; set; }
@@ -33,8 +34,8 @@ namespace PurchaseOrderApp.Models
 
         public IList<PurchaseOrderLine> Lines { get; set; } = new List<PurchaseOrderLine>();
 
-        public decimal SubTotal => Math.Round(Lines == null ? 0 : (decimal) (Lines.Sum(x => x.Quantity * x.UnitPrice)), 2);
-        public decimal VATAmount => Math.Round(SubTotal * VATPercent / 100, 2);
+        public decimal SubTotal => Math.Round(Lines == null ? 0 : (decimal)(Lines.Sum(x => x.Quantity * x.UnitPrice)), 2);
+        public decimal VATAmount => IncludeVat ? Math.Round(SubTotal * VATPercent / 100, 2) : 0m;
         public decimal Total => Math.Round(SubTotal + VATAmount, 2);
     }
 }
