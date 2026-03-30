@@ -9,3 +9,7 @@ obj/
 *.db-wal
 
 exception.log
+
+# Local SQLite database files
+purchaseorders.db*
+PurchaseOrderApp/purchaseorders.db*
