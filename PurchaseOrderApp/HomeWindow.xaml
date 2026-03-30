@@ -1,0 +1,346 @@
+<Window x:Class="PurchaseOrderApp.HomeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Capital Air (Pty) Ltd"
+        Height="780"
+        Width="1240"
+        MinHeight="720"
+        MinWidth="1080"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <Style x:Key="TileButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="260" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource HeroCardStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="104"
+                            Height="104"
+                            CornerRadius="22"
+                            Background="White"
+                            BorderBrush="#FFFFFF"
+                            BorderThickness="1"
+                            Padding="16"
+                            Margin="0,0,18,0">
+                        <Image Source="Assets/logo.png"
+                               Stretch="Uniform" />
+                    </Border>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="CAPITAL AIR (PTY) LTD"
+                                   FontSize="30"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="Choose a workspace to continue."
+                                   Margin="0,8,0,0"
+                                   FontSize="14"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Background="#FFFFFFCC"
+                        BorderBrush="#FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16,14"
+                        VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="Workspace Menu"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="Pick a tile below"
+                                   Margin="0,8,0,0"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="The purchase order dashboard, Wialon units, and job cards open in their own windows."
+                                   Margin="0,6,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap"
+                                   Width="220" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Style="{StaticResource CardBorderStyle}"
+                Margin="0,22,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Connectivity Settings"
+                               Style="{StaticResource SectionTitleStyle}" />
+                    <TextBlock Text="Open a popup to manage the Wialon host, access token, and Flickswitch API key. Wialon Units and Job Cards reuse the saved settings automatically."
+                               Margin="0,8,0,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+                    <Border Margin="0,16,0,0"
+                            Background="{StaticResource AccentSoftBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="12,10"
+                            Width="360">
+                        <StackPanel>
+                            <TextBlock Text="Saved Settings"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       Margin="0,6,0,0"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Right">
+                    <Button Content="Open Connectivity Settings"
+                            Width="220"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Click="OnOpenConnectivitySettings" />
+                    <TextBlock Text="Stored securely on this PC."
+                               Margin="0,10,0,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap"
+                               Width="220"
+                               TextAlignment="Right" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <UniformGrid Grid.Row="2"
+                     Margin="0,22,0,22"
+                     Columns="3">
+            <Button Style="{StaticResource TileButtonStyle}"
+                    Margin="0,0,12,0"
+                    Click="OnOpenPurchaseOrders">
+                <Border Background="{StaticResource AccentBrush}"
+                        CornerRadius="18"
+                        Padding="28"
+                        BorderBrush="{StaticResource AccentDarkBrush}"
+                        BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="52"
+                                    Height="52"
+                                    CornerRadius="16"
+                                    Background="#FFFFFF26"
+                                    BorderBrush="#FFFFFF33"
+                                    BorderThickness="1"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="PO"
+                                           Foreground="White"
+                                           FontWeight="Bold"
+                                           FontSize="18"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+
+                            <StackPanel Margin="16,0,0,0">
+                                <TextBlock Text="Purchase Orders"
+                                           Foreground="White"
+                                           FontSize="28"
+                                           FontWeight="Bold" />
+                                <TextBlock Text="Create, approve, print, export, and archive orders"
+                                           Foreground="#E7F6FA"
+                                           Margin="0,4,0,0"
+                                           FontSize="13" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1"
+                                   Text="Open the purchase order workspace to manage active orders, upload supporting documents, and generate the archived PDFs in Documents\\orders."
+                                   Foreground="White"
+                                   Margin="0,24,0,0"
+                                   FontSize="17"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+
+                        <Border Grid.Row="2"
+                                Margin="0,24,0,0"
+                                Background="#FFFFFF1A"
+                                CornerRadius="12"
+                                Padding="12,8"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="Open module"
+                                       Foreground="White"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Button>
+
+            <Button Style="{StaticResource TileButtonStyle}"
+                    Margin="12,0,12,0"
+                    Background="{StaticResource CardBackgroundBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    Click="OnOpenWialonUnits">
+                <Border Background="{StaticResource CardBackgroundBrush}"
+                        CornerRadius="18"
+                        Padding="28"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="52"
+                                    Height="52"
+                                    CornerRadius="16"
+                                    Background="{StaticResource AccentSoftBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="WU"
+                                           Foreground="{StaticResource AccentDarkBrush}"
+                                           FontWeight="Bold"
+                                           FontSize="18"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+
+                            <StackPanel Margin="16,0,0,0">
+                                <TextBlock Text="Wialon Units"
+                                           FontSize="28"
+                                           FontWeight="Bold" />
+                                <TextBlock Text="Load live units from Wialon"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           Margin="0,4,0,0"
+                                           FontSize="13" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1"
+                                   Text="Open the Wialon workspace to fetch the available units and prepare them for the next job card stage."
+                                   Margin="0,24,0,0"
+                                   FontSize="17"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+
+                        <Border Grid.Row="2"
+                                Margin="0,24,0,0"
+                                Background="{StaticResource AccentSoftBrush}"
+                                CornerRadius="12"
+                                Padding="12,8"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="Open module"
+                                       Foreground="{StaticResource AccentDarkBrush}"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Button>
+
+            <Button Style="{StaticResource TileButtonStyle}"
+                    Margin="12,0,0,0"
+                    Background="{StaticResource CardBackgroundBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    Click="OnOpenJobCards">
+                <Border Background="{StaticResource CardBackgroundBrush}"
+                        CornerRadius="18"
+                        Padding="28"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="52"
+                                    Height="52"
+                                    CornerRadius="16"
+                                    Background="{StaticResource AccentSoftBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="JC"
+                                           Foreground="{StaticResource AccentDarkBrush}"
+                                           FontWeight="Bold"
+                                           FontSize="18"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+
+                            <StackPanel Margin="16,0,0,0">
+                                <TextBlock Text="Job Cards"
+                                           FontSize="28"
+                                           FontWeight="Bold" />
+                                <TextBlock Text="Create Wialon units from a job card"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           Margin="0,4,0,0"
+                                           FontSize="13" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1"
+                                   Text="Open the job card workspace to enter the vehicle details, resolve the SIM number through Flickswitch, and create the unit in Wialon with the form values."
+                                   Margin="0,24,0,0"
+                                   FontSize="17"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+
+                        <Border Grid.Row="2"
+                                Margin="0,24,0,0"
+                                Background="{StaticResource AccentSoftBrush}"
+                                CornerRadius="12"
+                                Padding="12,8"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="Open module"
+                                       Foreground="{StaticResource AccentDarkBrush}"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Button>
+        </UniformGrid>
+
+        <TextBlock Grid.Row="3"
+                   Text="Completed orders are archived automatically when the signed order and invoice are present."
+                   Foreground="{StaticResource SecondaryTextBrush}"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,6" />
+    </Grid>
+</Window>

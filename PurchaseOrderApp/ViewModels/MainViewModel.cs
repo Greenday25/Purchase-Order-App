@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.EntityFrameworkCore;
 using PurchaseOrderApp.Models;
 using PurchaseOrderApp.Data;
+using PurchaseOrderApp.Services;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -208,6 +209,21 @@ namespace PurchaseOrderApp.ViewModels
 
         [ObservableProperty]
         private string historySearchText = string.Empty;
+
+        [ObservableProperty]
+        private int totalOrderCount;
+
+        [ObservableProperty]
+        private int activeOrderCount;
+
+        [ObservableProperty]
+        private int completedOrderCount;
+
+        [ObservableProperty]
+        private int rejectedOrderCount;
+
+        [ObservableProperty]
+        private int visibleOrderCount;
 
         [RelayCommand]
         private void AddLine()
@@ -516,6 +532,7 @@ namespace PurchaseOrderApp.ViewModels
                 .ToList();
 
             OrderHistory = new ObservableCollection<OrderHistoryItem>(historyItems);
+            UpdateHistorySummary(historyItems);
             ApplyHistoryFilter(selectedOrderId);
         }
 
@@ -642,6 +659,15 @@ namespace PurchaseOrderApp.ViewModels
 
             db.SaveChanges();
             LoadOrderHistory(db);
+
+            if (!string.IsNullOrWhiteSpace(order.SignedOrderFileName) &&
+                order.SignedOrderContent is { Length: > 0 } &&
+                !string.IsNullOrWhiteSpace(order.InvoiceFileName) &&
+                order.InvoiceContent is { Length: > 0 })
+            {
+                OrderArchiveService.TryArchiveCompletedOrder(orderId);
+            }
+
             return true;
         }
 
@@ -694,9 +720,18 @@ namespace PurchaseOrderApp.ViewModels
                 .ToList();
 
             FilteredOrderHistory = new ObservableCollection<OrderHistoryItem>(filteredItems);
+            VisibleOrderCount = filteredItems.Count;
             SelectedOrderHistoryItem = preferredSelectedOrderId.HasValue
                 ? FilteredOrderHistory.FirstOrDefault(item => item.PurchaseOrderId == preferredSelectedOrderId.Value)
                 : FilteredOrderHistory.FirstOrDefault();
+        }
+
+        private void UpdateHistorySummary(IReadOnlyCollection<OrderHistoryItem> historyItems)
+        {
+            TotalOrderCount = historyItems.Count;
+            CompletedOrderCount = historyItems.Count(item => item.IsCompleted);
+            RejectedOrderCount = historyItems.Count(item => item.IsRejected);
+            ActiveOrderCount = historyItems.Count - CompletedOrderCount - RejectedOrderCount;
         }
 
         private static bool MatchesHistorySearch(OrderHistoryItem item, string[] searchTerms)

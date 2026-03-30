@@ -744,15 +744,21 @@ public partial class OrderEditorWindow : Window
         ExportCurrentOrderToPdf();
     }
 
-    public void ExportCurrentOrderToPdf()
+    public bool ExportCurrentOrderToPdf(string? filePath = null, bool openAfterSave = true)
     {
         try
         {
-            if (DataContext is not MainViewModel vm) return;
+            if (DataContext is not MainViewModel vm) return false;
             var companyName = GetSelectedCompanyName(vm);
             var companyRegistrationLine = GetCompanyRegistrationLine(vm);
             var postInvoiceLines = GetPostInvoiceLines(vm);
-            var filePath = GetAutoPdfExportPath(vm.CurrentOrder.OrderNumber);
+            filePath ??= GetAutoPdfExportPath(vm.CurrentOrder.OrderNumber);
+
+            var targetDirectory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrWhiteSpace(targetDirectory))
+            {
+                Directory.CreateDirectory(targetDirectory);
+            }
 
             using var pdfWriter = new PdfWriter(filePath);
             using var pdfDocument = new PdfDocument(pdfWriter);
@@ -1035,7 +1041,12 @@ public partial class OrderEditorWindow : Window
 
             document.Close();
 
-            Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+            if (openAfterSave)
+            {
+                Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+            }
+
+            return true;
         }
         catch (Exception ex)
         {
@@ -1046,6 +1057,7 @@ public partial class OrderEditorWindow : Window
             catch {
             }
             MessageBox.Show($"Export to PDF failed:\n{ex}", "Export failed", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
         }
     }
 

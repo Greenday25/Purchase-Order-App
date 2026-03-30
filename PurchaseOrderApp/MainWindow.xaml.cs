@@ -16,6 +16,11 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
+    private void OnBackToMenu(object sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
     private void OnNewOrder(object sender, RoutedEventArgs e)
     {
         var editorWindow = new OrderEditorWindow

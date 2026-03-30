@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <AssemblyTitle>Capital Air (Pty) Ltd</AssemblyTitle>
+    <Product>Capital Air (Pty) Ltd</Product>
+    <Company>Capital Air (Pty) Ltd</Company>
   </PropertyGroup>
 
   <ItemGroup>

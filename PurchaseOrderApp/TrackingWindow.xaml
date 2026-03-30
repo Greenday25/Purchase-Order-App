@@ -1,0 +1,253 @@
+<Window x:Class="PurchaseOrderApp.TrackingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:PurchaseOrderApp.ViewModels"
+        mc:Ignorable="d"
+        Title="Wialon Unit List"
+        Height="980"
+        Width="1540"
+        MinHeight="900"
+        MinWidth="1280"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized">
+
+    <Window.DataContext>
+        <vm:WialonTrackingViewModel />
+    </Window.DataContext>
+
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource HeroCardStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="76"
+                            Height="76"
+                            CornerRadius="18"
+                            Background="White"
+                            BorderBrush="#FFFFFF"
+                            BorderThickness="1"
+                            Padding="12"
+                            Margin="0,0,16,0">
+                        <Image Source="Assets/logo.png"
+                               Stretch="Uniform" />
+                    </Border>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="WIALON UNITS"
+                                   FontSize="28"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="Connect to Wialon and work from a full-screen unit list."
+                                   Margin="0,6,0,0"
+                                   FontSize="13.5"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Top">
+                    <Button Content="Back to Menu"
+                            Width="140"
+                            Margin="0,0,12,0"
+                            Click="OnBackToMenu" />
+                    <Button Content="Load Units"
+                            Width="140"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding LoadUnitsCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1"
+              Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="340" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0">
+                <Border Style="{StaticResource CardBorderStyle}"
+                        Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Connection"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="API settings are managed from the Home screen. This page reads the saved values automatically when you load units."
+                                   Margin="0,6,0,12"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+
+                        <Button Content="Load Units"
+                                Margin="0,16,0,0"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding LoadUnitsCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardBorderStyle}"
+                        Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Filters"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="Filter by account and search by unit name, unique ID, phone number, unit ID, or account label."
+                                   Margin="0,6,0,10"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="Account"
+                                   Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox ItemsSource="{Binding AccountFilters}"
+                                  SelectedItem="{Binding SelectedAccountFilter}"
+                                  DisplayMemberPath="DisplayText"
+                                  Height="38" />
+
+                        <TextBlock Text="Search"
+                                   Style="{StaticResource FieldLabelStyle}"
+                                   Margin="0,14,0,6" />
+                        <TextBox Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="40"
+                                 VerticalContentAlignment="Center"
+                                 FontSize="14" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Summary"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Margin="0,6,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+
+                        <UniformGrid Columns="2"
+                                     Margin="0,14,0,0">
+                            <Border Style="{StaticResource CardBorderStyle}"
+                                    Margin="0,0,8,0"
+                                    Background="{StaticResource CardBackgroundBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="TOTAL"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{Binding TotalUnitCount}"
+                                               FontSize="24"
+                                               FontWeight="Bold"
+                                               Margin="0,6,0,0" />
+                                    <TextBlock Text="Loaded units"
+                                               Margin="0,8,0,0"
+                                               Foreground="{StaticResource SecondaryTextBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardBorderStyle}"
+                                    Margin="8,0,0,0"
+                                    Background="{StaticResource AccentSoftBrush}">
+                                <StackPanel>
+                                    <TextBlock Text="VISIBLE"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{Binding VisibleUnitCount}"
+                                               FontSize="24"
+                                               FontWeight="Bold"
+                                               Margin="0,6,0,0" />
+                                    <TextBlock Text="After filter"
+                                               Margin="0,8,0,0"
+                                               Foreground="{StaticResource SecondaryTextBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <Border Margin="0,12,0,0"
+                                Background="#EEF7FA"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="12,10">
+                            <StackPanel>
+                                <TextBlock Text="LAST LOADED"
+                                           Style="{StaticResource FieldLabelStyle}" />
+                                <TextBlock Text="{Binding LastLoadedDisplay}"
+                                           FontSize="16"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <Border Grid.Column="2"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="20,18,20,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="Loaded Units"
+                                       Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="This list comes directly from Wialon and can be filtered by account."
+                                       Margin="0,6,0,0"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Border Grid.Column="1"
+                                Background="{StaticResource CardTintBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="12,8"
+                                VerticalAlignment="Top">
+                            <TextBlock Text="{Binding VisibleUnitCount, StringFormat={}{0} matching units}"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                        </Border>
+                    </Grid>
+
+                    <DataGrid Grid.Row="1"
+                              Margin="16,0,16,16"
+                              ItemsSource="{Binding FilteredUnits}"
+                              SelectedItem="{Binding SelectedUnit}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              MouseDoubleClick="OnUnitDoubleClick">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name"
+                                                Binding="{Binding Name}"
+                                                Width="2.2*" />
+                            <DataGridTextColumn Header="Account"
+                                                Binding="{Binding AccountDisplay}"
+                                                Width="220" />
+                            <DataGridTextColumn Header="Unique ID"
+                                                Binding="{Binding UniqueIdDisplay}"
+                                                Width="1.2*" />
+                            <DataGridTextColumn Header="Phone"
+                                                Binding="{Binding PhoneNumberDisplay}"
+                                                Width="1.0*" />
+                            <DataGridTextColumn Header="Last Message"
+                                                Binding="{Binding LastMessageDisplay}"
+                                                Width="180" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
