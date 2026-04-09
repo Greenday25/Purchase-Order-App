@@ -102,9 +102,17 @@ public partial class WialonJobCardViewModel : ObservableObject
     private string flickswitchApiKey = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SelectedAccountDisplay))]
     [NotifyCanExecuteChangedFor(nameof(CreateJobCardCommand))]
     private WialonAccountOption? selectedAccount;
+
+    partial void OnSelectedAccountChanged(WialonAccountOption? value)
+    {
+        var accountName = value?.AccountName?.Trim() ?? string.Empty;
+        if (!string.Equals(Client, accountName, StringComparison.Ordinal))
+        {
+            Client = accountName;
+        }
+    }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateJobCardCommand))]
@@ -172,7 +180,6 @@ public partial class WialonJobCardViewModel : ObservableObject
     private string registrationFleet = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SelectedHardwareTypeDisplay))]
     [NotifyCanExecuteChangedFor(nameof(CreateJobCardCommand))]
     private WialonHardwareTypeOption? selectedHardwareType;
 
@@ -214,21 +221,11 @@ public partial class WialonJobCardViewModel : ObservableObject
                 : creatorId.Value.ToString(CultureInfo.InvariantCulture)
             : "Not connected";
 
-    public string SelectedHardwareTypeDisplay =>
-        SelectedHardwareType is null
-            ? "Select a hardware type"
-            : SelectedHardwareType.DisplayText;
-
     public IEnumerable<WialonHardwareTypeOption> FilteredHardwareTypes =>
         string.IsNullOrWhiteSpace(HardwareTypeSearchText)
             ? HardwareTypes
             : HardwareTypes.Where(option =>
                 option.DisplayText.Contains(HardwareTypeSearchText.Trim(), StringComparison.OrdinalIgnoreCase));
-
-    public string SelectedAccountDisplay =>
-        SelectedAccount is null
-            ? "Select an account"
-            : SelectedAccount.DisplayText;
 
     public string ResolvedPhoneDisplay =>
         string.IsNullOrWhiteSpace(ResolvedPhoneNumber)
@@ -264,7 +261,6 @@ public partial class WialonJobCardViewModel : ObservableObject
             currentSessionId = null;
             creatorId = null;
             OnPropertyChanged(nameof(CurrentCreatorDisplay));
-            OnPropertyChanged(nameof(SelectedAccountDisplay));
 
             var client = new WialonApiClient(ApiHost);
             var session = await client.LoginAsync(AccessToken.Trim()).ConfigureAwait(true);
@@ -303,7 +299,6 @@ public partial class WialonJobCardViewModel : ObservableObject
                 option.CreatorId == creatorId.Value)
                 ?? (AccountOptions.Count == 1 ? AccountOptions[0] : null);
             availableUsers = users;
-            OnPropertyChanged(nameof(SelectedAccountDisplay));
 
             SaveCredentials();
 
