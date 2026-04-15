@@ -35,6 +35,8 @@ public partial class WialonUnitSummary : ObservableObject
     private string? hardwareTypeName;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LastMessageDisplay))]
+    [NotifyPropertyChangedFor(nameof(IsInactiveOver14Days))]
     private DateTimeOffset? lastMessageAt;
 
     [ObservableProperty]
@@ -50,6 +52,10 @@ public partial class WialonUnitSummary : ObservableObject
         LastMessageAt.HasValue
             ? LastMessageAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
             : "No messages";
+
+    public bool IsInactiveOver14Days =>
+        !LastMessageAt.HasValue ||
+        LastMessageAt.Value < DateTimeOffset.UtcNow.AddDays(-14);
 
     public string UniqueIdDisplay =>
         string.IsNullOrWhiteSpace(UniqueId) ? "N/A" : UniqueId;

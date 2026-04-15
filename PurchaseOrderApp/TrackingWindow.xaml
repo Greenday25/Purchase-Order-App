@@ -13,6 +13,10 @@
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized">
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+
     <Window.DataContext>
         <vm:WialonTrackingViewModel />
     </Window.DataContext>
@@ -190,6 +194,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -220,15 +225,117 @@
                         </Border>
                     </Grid>
 
-                    <DataGrid Grid.Row="1"
+                    <Border Grid.Row="1"
+                            Margin="16,0,16,12"
+                            Padding="16,14"
+                            CornerRadius="14"
+                            Background="{StaticResource AccentSoftBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Viewbox Width="24"
+                                     Height="24"
+                                     VerticalAlignment="Top">
+                                <Grid Width="24"
+                                      Height="24"
+                                      RenderTransformOrigin="0.5,0.5">
+                                    <Grid.RenderTransform>
+                                        <RotateTransform />
+                                    </Grid.RenderTransform>
+
+                                    <Ellipse Width="24"
+                                             Height="24"
+                                             Stroke="{StaticResource AccentBrush}"
+                                             StrokeThickness="2"
+                                             Opacity="0.2" />
+                                    <Path Data="M 12,1 A 11,11 0 0 1 23,12"
+                                          Stroke="{StaticResource AccentBrush}"
+                                          StrokeThickness="2.6"
+                                          StrokeStartLineCap="Round"
+                                          StrokeEndLineCap="Round" />
+
+                                    <Grid.Triggers>
+                                        <EventTrigger RoutedEvent="Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                     From="0"
+                                                                     To="360"
+                                                                     Duration="0:0:1.1" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Grid.Triggers>
+                                </Grid>
+                            </Viewbox>
+
+                            <StackPanel Grid.Column="1"
+                                        Margin="14,0,0,0">
+                                <TextBlock Text="Loading units from Wialon"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource AccentDarkBrush}" />
+                                <TextBlock Text="{Binding StatusMessage}"
+                                           Margin="0,4,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           TextWrapping="Wrap" />
+                                <ProgressBar Margin="0,12,0,0"
+                                             Height="6"
+                                             Minimum="0"
+                                             Maximum="100"
+                                             IsIndeterminate="True" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <DataGrid Grid.Row="2"
                               Margin="16,0,16,16"
                               ItemsSource="{Binding FilteredUnits}"
                               SelectedItem="{Binding SelectedUnit}"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              ScrollViewer.CanContentScroll="True"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
                               IsReadOnly="True"
                               MouseDoubleClick="OnUnitDoubleClick">
                         <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Status"
+                                                    Width="130">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border x:Name="StaleBadge"
+                                                Visibility="Collapsed"
+                                                Background="{StaticResource DangerSoftBrush}"
+                                                BorderBrush="#F2C6C6"
+                                                BorderThickness="1"
+                                                CornerRadius="10"
+                                                Padding="10,4"
+                                                HorizontalAlignment="Left">
+                                            <TextBlock Text="STALE > 14D"
+                                                       Foreground="{StaticResource DangerDarkBrush}"
+                                                       FontWeight="Bold"
+                                                       FontSize="11.5" />
+                                        </Border>
+
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsInactiveOver14Days}"
+                                                         Value="True">
+                                                <Setter TargetName="StaleBadge"
+                                                        Property="Visibility"
+                                                        Value="Visible" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Name"
                                                 Binding="{Binding Name}"
                                                 Width="2.2*" />
@@ -243,7 +350,23 @@
                                                 Width="1.0*" />
                             <DataGridTextColumn Header="Last Message"
                                                 Binding="{Binding LastMessageDisplay}"
-                                                Width="180" />
+                                                Width="180">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground"
+                                                Value="{StaticResource PrimaryTextBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsInactiveOver14Days}"
+                                                         Value="True">
+                                                <Setter Property="Foreground"
+                                                        Value="{StaticResource DangerDarkBrush}" />
+                                                <Setter Property="FontWeight"
+                                                        Value="SemiBold" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

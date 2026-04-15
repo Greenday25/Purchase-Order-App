@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
+using System.Windows;
 
 namespace PurchaseOrderApp.ViewModels;
 
@@ -13,9 +14,11 @@ public partial class WialonTrackingViewModel : ObservableObject
 {
     private const string DefaultApiHost = "hst-api.wialon.eu";
     private const int ConnectivityHydrationThreshold = 75;
+    private readonly JobCardSecretStore secretStore = new();
     private readonly List<WialonUnitSummary> allUnits = [];
     private CancellationTokenSource? connectivityHydrationCts;
     private IReadOnlyDictionary<long, string> hardwareTypeNames = new Dictionary<long, string>();
+    private bool isInitialized;
 
     [ObservableProperty]
     private string apiHost = DefaultApiHost;
@@ -80,6 +83,38 @@ public partial class WialonTrackingViewModel : ObservableObject
         ApplyFilter();
     }
 
+    public async Task InitializeAsync()
+    {
+        if (isInitialized)
+        {
+            return;
+        }
+
+        isInitialized = true;
+
+        var credentials = secretStore.Load();
+
+        if (!string.IsNullOrWhiteSpace(credentials.ApiHost))
+        {
+            var restoredHost = credentials.ApiHost.Trim();
+            if (!string.Equals(restoredHost, "hst-api.wialon.com", StringComparison.OrdinalIgnoreCase))
+            {
+                ApiHost = restoredHost;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(credentials.WialonAccessToken))
+        {
+            AccessToken = credentials.WialonAccessToken.Trim();
+            StatusMessage = "Saved Wialon connectivity settings loaded. Loading units automatically...";
+            await LoadUnitsAsync();
+        }
+        else
+        {
+            StatusMessage = "No saved Wialon access token found. Open Connectivity Settings from the Home screen to add it.";
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanLoadUnits))]
     private async Task LoadUnitsAsync()
     {
@@ -93,18 +128,24 @@ public partial class WialonTrackingViewModel : ObservableObject
         {
             IsBusy = true;
             StatusMessage = $"Connecting to {ApiHost}...";
+            await Task.Yield();
+
+            var previousSelectionId = SelectedUnit?.UnitId;
+            var previousAccountFilter = SelectedAccountFilter?.FilterValue;
+            var searchTerms = (FilterText ?? string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             var client = new WialonApiClient(ApiHost);
-            var session = await client.LoginAsync(AccessToken.Trim()).ConfigureAwait(true);
-            StatusMessage = "Loading units, hardware types, and account names...";
+            var session = await client.LoginAsync(AccessToken.Trim()).ConfigureAwait(false);
+            await RunOnUiThreadAsync(() => StatusMessage = "Loading units, hardware types, and account names...");
 
             var hardwareTypesTask = LoadHardwareTypeNamesAsync(client, session.SessionId);
             var accountNamesTask = LoadAccountNamesAsync(client, session.SessionId);
             var unitsTask = client.GetUnitsAsync(session.SessionId);
 
-            var loadedUnits = await unitsTask.ConfigureAwait(true);
-            hardwareTypeNames = await hardwareTypesTask.ConfigureAwait(true);
-            var accountLabels = await accountNamesTask.ConfigureAwait(true);
+            var loadedUnits = await unitsTask.ConfigureAwait(false);
+            var loadedHardwareTypeNames = await hardwareTypesTask.ConfigureAwait(false);
+            var accountLabels = await accountNamesTask.ConfigureAwait(false);
             var enrichedUnits = loadedUnits
                 .Select(unit =>
                 {
@@ -119,48 +160,63 @@ public partial class WialonTrackingViewModel : ObservableObject
                 })
                 .ToList();
 
-            CurrentSessionId = session.SessionId;
-            allUnits.Clear();
-            allUnits.AddRange(enrichedUnits);
-
-            var previousAccountFilter = SelectedAccountFilter?.FilterValue;
-            AccountFilters = BuildAccountFilters(enrichedUnits);
-            SelectedAccountFilter = AccountFilters.FirstOrDefault(option =>
-                string.Equals(option.FilterValue, previousAccountFilter, StringComparison.OrdinalIgnoreCase))
-                ?? AccountFilters.First();
-
-            Units = new ObservableCollection<WialonUnitSummary>(allUnits);
-            LastLoadedAt = DateTimeOffset.Now;
             var hasConnectivityDetails = enrichedUnits.Any(unit =>
                 !string.IsNullOrWhiteSpace(unit.UniqueId) ||
                 !string.IsNullOrWhiteSpace(unit.PhoneNumber));
+            var accountFilterOptions = BuildAccountFilters(enrichedUnits);
+            var resolvedAccountFilter = accountFilterOptions.FirstOrDefault(option =>
+                string.Equals(option.FilterValue, previousAccountFilter, StringComparison.OrdinalIgnoreCase))
+                ?? accountFilterOptions.First();
+            var filteredUnits = GetFilteredUnits(enrichedUnits, resolvedAccountFilter.FilterValue, searchTerms);
 
-            StatusMessage = enrichedUnits.Count == 0
+            var statusMessage = enrichedUnits.Count == 0
                 ? "Login succeeded, but no units were returned."
                 : hasConnectivityDetails
                     ? $"Loaded {enrichedUnits.Count} unit(s) from Wialon."
                     : $"Loaded {enrichedUnits.Count} unit(s), but Wialon did not return any unique ID or phone values. Check the token's View connectivity settings rights.";
 
-            ApplyFilter();
+            await RunOnUiThreadAsync(() =>
+            {
+                CurrentSessionId = session.SessionId;
+                hardwareTypeNames = loadedHardwareTypeNames;
+                allUnits.Clear();
+                allUnits.AddRange(enrichedUnits);
+
+                AccountFilters = accountFilterOptions;
+                SelectedAccountFilter = resolvedAccountFilter;
+                Units = new ObservableCollection<WialonUnitSummary>(allUnits);
+                FilteredUnits = new ObservableCollection<WialonUnitSummary>(filteredUnits);
+                TotalUnitCount = allUnits.Count;
+                VisibleUnitCount = filteredUnits.Count;
+                SelectedUnit = previousSelectionId.HasValue
+                    ? filteredUnits.FirstOrDefault(unit => unit.UnitId == previousSelectionId.Value)
+                    : filteredUnits.FirstOrDefault();
+                LastLoadedAt = DateTimeOffset.Now;
+                StatusMessage = statusMessage;
+                QueueConnectivityHydration();
+            });
         }
         catch (WialonApiException ex)
         {
-            StatusMessage = ex.Message;
-            allUnits.Clear();
-            Units = [];
-            ApplyFilter();
+            await RunOnUiThreadAsync(() =>
+            {
+                StatusMessage = ex.Message;
+                allUnits.Clear();
+                Units = [];
+                ApplyFilter();
+            });
         }
         catch (HttpRequestException ex)
         {
-            StatusMessage = $"Unable to reach Wialon: {ex.Message}";
+            await RunOnUiThreadAsync(() => StatusMessage = $"Unable to reach Wialon: {ex.Message}");
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Unexpected error while loading units: {ex.Message}";
+            await RunOnUiThreadAsync(() => StatusMessage = $"Unexpected error while loading units: {ex.Message}");
         }
         finally
         {
-            IsBusy = false;
+            await RunOnUiThreadAsync(() => IsBusy = false);
         }
     }
 
@@ -185,12 +241,7 @@ public partial class WialonTrackingViewModel : ObservableObject
         var searchTerms = (FilterText ?? string.Empty)
             .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var selectedAccount = SelectedAccountFilter?.FilterValue ?? string.Empty;
-
-        var filtered = allUnits
-            .Where(unit => string.IsNullOrWhiteSpace(selectedAccount) ||
-                           string.Equals(unit.AccountId?.ToString(), selectedAccount, StringComparison.OrdinalIgnoreCase))
-            .Where(unit => MatchesSearch(unit, searchTerms))
-            .ToList();
+        var filtered = GetFilteredUnits(allUnits, selectedAccount, searchTerms);
 
         FilteredUnits = new ObservableCollection<WialonUnitSummary>(filtered);
         TotalUnitCount = allUnits.Count;
@@ -221,6 +272,18 @@ public partial class WialonTrackingViewModel : ObservableObject
         });
 
         return searchTerms.All(term => searchableText.Contains(term, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static List<WialonUnitSummary> GetFilteredUnits(
+        IEnumerable<WialonUnitSummary> units,
+        string selectedAccount,
+        string[] searchTerms)
+    {
+        return units
+            .Where(unit => string.IsNullOrWhiteSpace(selectedAccount) ||
+                           string.Equals(unit.AccountId?.ToString(), selectedAccount, StringComparison.OrdinalIgnoreCase))
+            .Where(unit => MatchesSearch(unit, searchTerms))
+            .ToList();
     }
 
     private static ObservableCollection<WialonAccountFilterOption> BuildAccountFilters(IEnumerable<WialonUnitSummary> units)
@@ -296,7 +359,7 @@ public partial class WialonTrackingViewModel : ObservableObject
     {
         try
         {
-            var accounts = await client.GetAccountNamesAsync(sessionId, cancellationToken).ConfigureAwait(true);
+            var accounts = await client.GetAccountNamesAsync(sessionId, cancellationToken).ConfigureAwait(false);
             return new Dictionary<long, string>(accounts);
         }
         catch (WialonApiException)
@@ -323,6 +386,7 @@ public partial class WialonTrackingViewModel : ObservableObject
         {
             var client = new WialonApiClient(ApiHost);
             var unitLookup = allUnits.ToDictionary(unit => unit.UnitId);
+            await Task.Delay(150, cancellationToken).ConfigureAwait(false);
 
             foreach (var unitId in unitIds)
             {
@@ -340,33 +404,36 @@ public partial class WialonTrackingViewModel : ObservableObject
 
                 try
                 {
-                    var details = await client.GetUnitDetailsAsync(sessionId, unitId, cancellationToken).ConfigureAwait(true);
-                    if (string.IsNullOrWhiteSpace(unit.UniqueId) && !string.IsNullOrWhiteSpace(details.UniqueId))
+                    var details = await client.GetUnitDetailsAsync(sessionId, unitId, cancellationToken).ConfigureAwait(false);
+                    await RunOnUiThreadAsync(() =>
                     {
-                        unit.UniqueId = details.UniqueId;
-                    }
+                        if (string.IsNullOrWhiteSpace(unit.UniqueId) && !string.IsNullOrWhiteSpace(details.UniqueId))
+                        {
+                            unit.UniqueId = details.UniqueId;
+                        }
 
-                    if (string.IsNullOrWhiteSpace(unit.PhoneNumber) && !string.IsNullOrWhiteSpace(details.PhoneNumber))
-                    {
-                        unit.PhoneNumber = details.PhoneNumber;
-                    }
+                        if (string.IsNullOrWhiteSpace(unit.PhoneNumber) && !string.IsNullOrWhiteSpace(details.PhoneNumber))
+                        {
+                            unit.PhoneNumber = details.PhoneNumber;
+                        }
 
-                    if (string.IsNullOrWhiteSpace(unit.AccountLabel) && !string.IsNullOrWhiteSpace(details.AccountLabel))
-                    {
-                        unit.AccountLabel = details.AccountLabel;
-                    }
+                        if (string.IsNullOrWhiteSpace(unit.AccountLabel) && !string.IsNullOrWhiteSpace(details.AccountLabel))
+                        {
+                            unit.AccountLabel = details.AccountLabel;
+                        }
 
-                    if (!unit.HardwareTypeId.HasValue && details.HardwareTypeId.HasValue)
-                    {
-                        unit.HardwareTypeId = details.HardwareTypeId;
-                    }
+                        if (!unit.HardwareTypeId.HasValue && details.HardwareTypeId.HasValue)
+                        {
+                            unit.HardwareTypeId = details.HardwareTypeId;
+                        }
 
-                    if (string.IsNullOrWhiteSpace(unit.HardwareTypeName) && !string.IsNullOrWhiteSpace(details.HardwareTypeName))
-                    {
-                        unit.HardwareTypeName = details.HardwareTypeName;
-                    }
+                        if (string.IsNullOrWhiteSpace(unit.HardwareTypeName) && !string.IsNullOrWhiteSpace(details.HardwareTypeName))
+                        {
+                            unit.HardwareTypeName = details.HardwareTypeName;
+                        }
 
-                    ApplyHardwareTypeName(unit);
+                        ApplyHardwareTypeName(unit);
+                    });
                 }
                 catch (WialonApiException)
                 {
@@ -391,7 +458,7 @@ public partial class WialonTrackingViewModel : ObservableObject
     {
         try
         {
-            return await client.GetHardwareTypeNamesAsync(sessionId, cancellationToken).ConfigureAwait(true);
+            return await client.GetHardwareTypeNamesAsync(sessionId, cancellationToken).ConfigureAwait(false);
         }
         catch (WialonApiException)
         {
@@ -411,5 +478,16 @@ public partial class WialonTrackingViewModel : ObservableObject
         {
             unit.HardwareTypeName = hardwareTypeName;
         }
+    }
+
+    private static Task RunOnUiThreadAsync(Action action)
+    {
+        if (Application.Current?.Dispatcher is not { } dispatcher || dispatcher.CheckAccess())
+        {
+            action();
+            return Task.CompletedTask;
+        }
+
+        return dispatcher.InvokeAsync(action).Task;
     }
 }

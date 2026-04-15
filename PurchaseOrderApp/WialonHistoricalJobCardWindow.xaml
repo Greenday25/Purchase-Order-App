@@ -1,0 +1,258 @@
+<Window x:Class="PurchaseOrderApp.WialonHistoricalJobCardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Historical Job Card"
+        Height="860"
+        Width="980"
+        MinHeight="760"
+        MinWidth="860"
+        WindowStartupLocation="CenterOwner">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource HeroCardStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="HISTORICAL JOB CARD"
+                               FontSize="28"
+                               FontWeight="Bold" />
+                    <TextBlock Text="Select an existing Wialon unit, import what you need, then record the older physical job card into the register."
+                               Margin="0,8,0,0"
+                               FontSize="14"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                        Width="110"
+                        Content="Close"
+                        Click="OnCloseWindow" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,16,0,16"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Connection"
+                               Style="{StaticResource SectionTitleStyle}" />
+                    <TextBlock Text="Historical registration still uses the saved Wialon session. Load setup here if you need to reconnect first."
+                               Margin="0,6,0,8"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+                    <WrapPanel Orientation="Horizontal">
+                        <Border Background="{StaticResource CardTintBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="10,6"
+                                Margin="0,0,10,0">
+                            <TextBlock Text="{Binding CurrentCreatorDisplay}" />
+                        </Border>
+                        <Border Background="{StaticResource CardTintBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="10,6">
+                            <TextBlock Text="{Binding ExistingWialonUnits.Count, StringFormat={}{0} unit(s) cached}" />
+                        </Border>
+                    </WrapPanel>
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                        Width="150"
+                        Height="40"
+                        VerticalAlignment="Top"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Content="Load Wialon Setup"
+                        Command="{Binding LoadWialonSetupCommand}" />
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="2"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <Border Style="{StaticResource CardBorderStyle}"
+                        Padding="14"
+                        Background="{StaticResource AccentSoftBrush}">
+                    <StackPanel>
+                        <TextBlock Text="Existing Unit Selection"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="Load the units, search the list, then import details if you want to review or amend the job card information before saving it."
+                                   Margin="0,6,0,10"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Load Existing Units"
+                                    Width="160"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Command="{Binding LoadExistingUnitsCommand}" />
+                            <Button Content="Import Unit Details"
+                                    Width="150"
+                                    Margin="12,0,0,0"
+                                    Command="{Binding ImportExistingUnitDetailsCommand}" />
+                            <Button Content="Open Detail Editor"
+                                    Width="150"
+                                    Margin="12,0,0,0"
+                                    Click="OnOpenEditorWindow" />
+                        </StackPanel>
+
+                        <TextBlock Text="Search Existing Unit"
+                                   Margin="0,12,0,6"
+                                   Style="{StaticResource FieldLabelStyle}" />
+                        <TextBox Text="{Binding ExistingUnitSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,0,0,8" />
+
+                        <TextBlock Text="Select Existing Wialon Unit"
+                                   Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox ItemsSource="{Binding FilteredExistingWialonUnits}"
+                                  SelectedItem="{Binding SelectedExistingWialonUnit}"
+                                  Margin="0,0,0,10"
+                                  MinHeight="40">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name, Mode=OneWay}"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Foreground="{StaticResource SecondaryTextBrush}"
+                                                   FontSize="11.5">
+                                            <TextBlock.Text>
+                                                <MultiBinding Mode="OneWay"
+                                                              StringFormat="Unit ID: {0}  |  Account: {1}">
+                                                    <Binding Path="UnitId" Mode="OneWay" />
+                                                    <Binding Path="AccountDisplay" Mode="OneWay" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <TextBlock Text="{Binding ExistingUnitsStatusMessage}"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border Margin="0,18,0,0"
+                        Style="{StaticResource CardBorderStyle}"
+                        Padding="14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Imported Details"
+                                       Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="Open the detail editor if you want to adjust what was imported before the historical record is saved."
+                                       Margin="0,6,0,10"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding CreatedUnitName, StringFormat=Selected unit: {0}}"
+                                       Margin="0,0,0,8"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                            <TextBlock Text="{Binding JobCardName, StringFormat=Resolved unit name: {0}}"
+                                       Margin="0,0,0,8"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                            <TextBlock Text="{Binding UniqueId, StringFormat=Unique ID: {0}}"
+                                       Margin="0,0,0,8"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                            <TextBlock Text="{Binding ResolvedPhoneDisplay, StringFormat=Phone: {0}}"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Ready To Record"
+                                       Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="When you record this historical unit, the next sequence number is assigned and the job card appears back in the main register."
+                                       Margin="0,6,0,10"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       TextWrapping="Wrap" />
+                            <Border Background="{StaticResource CardTintBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="12"
+                                    Padding="10,8">
+                                <StackPanel>
+                                    <TextBlock Text="Next Job Card"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource SecondaryTextBrush}" />
+                                    <TextBlock Text="{Binding NextJobCardNumber}"
+                                               Margin="0,6,0,0"
+                                               FontWeight="Bold"
+                                               FontFamily="Consolas" />
+                                    <TextBlock Text="{Binding BillingSystemTypeDisplay, StringFormat=System: {0}}"
+                                               Margin="0,8,0,0"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding BillingTotalExVatDisplay, StringFormat=Billing: {0}}"
+                                               Margin="0,4,0,0"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="3"
+                Margin="0,16,0,0"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="{Binding ExistingUnitsStatusMessage}"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource SecondaryTextBrush}"
+                           TextWrapping="Wrap" />
+
+                <WrapPanel Grid.Column="1"
+                           Orientation="Horizontal"
+                           VerticalAlignment="Center">
+                    <Button Content="Open Detail Editor"
+                            Width="150"
+                            Margin="0,0,12,0"
+                            Click="OnOpenEditorWindow" />
+                    <Button Content="Register Existing Unit"
+                            Width="180"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding RegisterExistingUnitJobCardCommand}" />
+                </WrapPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

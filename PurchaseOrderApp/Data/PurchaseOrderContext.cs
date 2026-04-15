@@ -8,6 +8,7 @@ namespace PurchaseOrderApp.Data
         public DbSet<Vendor> Vendors { get; set; }
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
         public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; }
+        public DbSet<JobCardRecord> JobCards { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -22,6 +23,8 @@ namespace PurchaseOrderApp.Data
                 .HasForeignKey(line => line.PurchaseOrderId);
 
             modelBuilder.Entity<PurchaseOrder>().HasOne(po => po.Vendor).WithMany(v => v.PurchaseOrders).HasForeignKey(po => po.VendorId);
+            modelBuilder.Entity<JobCardRecord>().HasIndex(record => record.SequenceNumber).IsUnique();
+            modelBuilder.Entity<JobCardRecord>().HasIndex(record => record.JobCardNumber).IsUnique();
         }
     }
 }

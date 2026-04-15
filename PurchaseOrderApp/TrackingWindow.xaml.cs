@@ -14,6 +14,15 @@ public partial class TrackingWindow : Window
     public TrackingWindow()
     {
         InitializeComponent();
+        Loaded += OnWindowLoaded;
+    }
+
+    private async void OnWindowLoaded(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is WialonTrackingViewModel viewModel)
+        {
+            await viewModel.InitializeAsync();
+        }
     }
 
     private void OnBackToMenu(object sender, RoutedEventArgs e)

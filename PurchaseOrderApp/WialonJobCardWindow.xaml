@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Create Job Card"
+        Title="Job Card Register"
         Height="960"
         Width="1480"
         MinHeight="860"
@@ -26,287 +26,265 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Horizontal">
-                    <Border Width="96"
-                            Height="96"
-                            CornerRadius="22"
-                            Background="White"
-                            BorderBrush="#FFFFFF"
-                            BorderThickness="1"
-                            Padding="16"
-                            Margin="0,0,18,0">
-                        <Image Source="Assets/logo.png"
-                               Stretch="Uniform" />
-                    </Border>
-
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="CREATE JOB CARD"
-                                   FontSize="30"
-                                   FontWeight="Bold" />
-                        <TextBlock Text="{Binding StatusMessage}"
-                                   Margin="0,8,0,0"
-                                   FontSize="14"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                </StackPanel>
-
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Top">
-                    <Button Content="Create Job Card"
-                            Width="150"
-                            Margin="0,0,12,0"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Command="{Binding CreateJobCardCommand}" />
-                    <Button Content="Back to Menu"
-                            Width="120"
-                            Click="OnCloseWindow" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="1"
-              Margin="0,14,0,10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="18" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0"
-                    Style="{StaticResource CardBorderStyle}"
-                    Padding="14"
-                    VerticalAlignment="Top">
                 <StackPanel>
-                    <TextBlock Text="Wialon Account"
-                               Style="{StaticResource SectionTitleStyle}" />
-                    <TextBlock Text="Manage the Wialon host and access token from the Home screen. This page uses the saved settings automatically."
-                               Margin="0,6,0,10"
-                               Foreground="{StaticResource SecondaryTextBrush}"
-                               TextWrapping="Wrap" />
-
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="Load Wialon Setup"
-                                Width="160"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Command="{Binding LoadWialonSetupCommand}" />
-                        <Border Margin="14,0,0,0"
-                                Background="{StaticResource CardTintBrush}"
+                        <Border Width="96"
+                                Height="96"
+                                CornerRadius="22"
+                                Background="White"
+                                BorderBrush="#FFFFFF"
+                                BorderThickness="1"
+                                Padding="16"
+                                Margin="0,0,18,0">
+                            <Image Source="Assets/logo.png"
+                                   Stretch="Uniform" />
+                        </Border>
+
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="JOB CARD REGISTER"
+                                       FontSize="30"
+                                       FontWeight="Bold" />
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       Margin="0,8,0,0"
+                                       FontSize="14"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Grid Margin="114,18,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0"
+                                Background="White"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
                                 CornerRadius="12"
-                                Padding="10,6"
-                                VerticalAlignment="Center">
-                            <TextBlock Text="{Binding HardwareTypes.Count, StringFormat={}{0} hardware types loaded}"
-                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                                Padding="12,8">
+                            <StackPanel>
+                                <TextBlock Text="NEXT JOB CARD"
+                                           FontSize="11.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding NextJobCardNumber}"
+                                           Margin="0,4,0,0"
+                                           FontFamily="Consolas"
+                                           FontWeight="Bold" />
+                            </StackPanel>
                         </Border>
-                    </StackPanel>
 
-                    <TextBlock Text="Create Under Account"
-                               Margin="0,12,0,6"
-                               Style="{StaticResource FieldLabelStyle}" />
-                    <ComboBox ItemsSource="{Binding AccountOptions}"
-                              SelectedItem="{Binding SelectedAccount}"
-                              DisplayMemberPath="DisplayText"
-                              Height="38" />
+                        <Border Grid.Column="2"
+                                Background="White"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="12,8">
+                            <StackPanel>
+                                <TextBlock Text="RECORDED"
+                                           FontSize="11.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding JobCardHistory.Count, StringFormat={}{0} job card(s)}"
+                                           Margin="0,4,0,0"
+                                           FontWeight="Bold" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="4"
+                                Background="White"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="12,8">
+                            <StackPanel>
+                                <TextBlock Text="CONNECTED AS"
+                                           FontSize="11.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding CurrentCreatorDisplay}"
+                                           Margin="0,4,0,0"
+                                           FontWeight="Bold"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="6"
+                                Background="White"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="12,8">
+                            <StackPanel>
+                                <TextBlock Text="EXISTING WIALON UNITS"
+                                           FontSize="11.5"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding ExistingWialonUnits.Count, StringFormat={}{0} loaded}"
+                                           Margin="0,4,0,0"
+                                           FontWeight="Bold" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </StackPanel>
-            </Border>
 
-            <Border Grid.Column="2"
-                    Style="{StaticResource CardBorderStyle}"
-                    Padding="14"
-                    Background="{StaticResource AccentSoftBrush}"
-                    VerticalAlignment="Top">
-                <StackPanel>
-                    <TextBlock Text="Flickswitch Lookup"
-                               Style="{StaticResource SectionTitleStyle}" />
-                    <TextBlock Text="Use the ICCID to fetch the MSISDN before the unit is created. The Flickswitch API key is managed from the Home screen."
-                               Margin="0,6,0,8"
+                <WrapPanel Grid.Column="1"
+                           Orientation="Horizontal"
+                           VerticalAlignment="Top">
+                    <Button Content="New Job Card"
+                            Width="140"
+                            Margin="0,0,12,0"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Click="OnOpenEditorWindow" />
+                    <Button Content="Historical Register"
+                            Width="160"
+                            Margin="0,0,12,0"
+                            Click="OnOpenHistoricalWindow" />
+                    <Button Content="Load Wialon Setup"
+                            Width="150"
+                            Margin="0,0,12,0"
+                            Command="{Binding LoadWialonSetupCommand}" />
+                    <Button Content="Back to Menu"
+                            Width="120"
+                            Click="OnCloseWindow" />
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,16,0,16"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="16,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Background="{StaticResource CardTintBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="14,12">
+                    <TextBlock Text="The register now stays visible while the detailed create and historical flows open in their own windows."
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
-
-                    <TextBlock Text="ICCID"
-                               Margin="0,10,0,6"
-                               Style="{StaticResource FieldLabelStyle}" />
-                    <TextBox Text="{Binding Iccid, UpdateSourceTrigger=PropertyChanged}"
-                             Margin="0,0,0,10" />
-
-                    <Border Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="{StaticResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="12"
-                            Padding="10,8">
-                        <StackPanel>
-                            <TextBlock Text="Derived Phone"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource SecondaryTextBrush}" />
-                            <TextBlock Text="{Binding ResolvedPhoneDisplay}"
-                                       Margin="0,6,0,0"
-                                       FontWeight="Bold"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                    </StackPanel>
                 </Border>
-        </Grid>
+
+                <Border Grid.Column="2"
+                        Background="{StaticResource AccentSoftBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="14,12">
+                    <TextBlock Text="Use New Job Card for fresh Wialon units, or Historical Register for older physical job cards where the unit already exists."
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+                </Border>
+
+                <Border Grid.Column="4"
+                        Background="{StaticResource CardTintBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="14,12">
+                    <TextBlock Text="{Binding CreatedJobCardNumber, StringFormat=Latest recorded job card: {0}}"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+                </Border>
+            </Grid>
+        </Border>
 
         <Border Grid.Row="2"
                 Style="{StaticResource CardBorderStyle}"
-                Padding="0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
-                <Grid Margin="20,18,20,18">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="24" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+                Padding="18,16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="Wialon Unit Details"
-                                   Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="These fields will be written into Wialon when the unit is created."
-                                   Margin="0,6,0,14"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   TextWrapping="Wrap" />
+                <StackPanel>
+                    <TextBlock Text="Job Card Register"
+                               Style="{StaticResource SectionTitleStyle}" />
+                    <TextBlock Text="This table is the main workspace now, so you can keep the registry in view while the detailed capture screens open separately. Double-click a job card to manage installation photos or export its PDF."
+                               Margin="0,6,0,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
 
-                        <TextBlock Text="Unit Name"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding JobCardName, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,6"
-                                 IsReadOnly="True" />
-                        <TextBlock Text="Uses Registration Plate first, otherwise VIN."
-                                   Margin="0,0,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
+                <WrapPanel Grid.Column="1"
+                           Orientation="Horizontal"
+                           VerticalAlignment="Top">
+                    <Button Content="New Job Card"
+                            Width="140"
+                            Margin="0,0,12,0"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Click="OnOpenEditorWindow" />
+                    <Button Content="Historical Register"
+                            Width="160"
+                            Click="OnOpenHistoricalWindow" />
+                </WrapPanel>
 
-                        <TextBlock Text="Unique ID"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding UniqueId, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="Hardware Type"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding HardwareTypeSearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,8" />
-                        <ComboBox ItemsSource="{Binding FilteredHardwareTypes}"
-                                  SelectedItem="{Binding SelectedHardwareType}"
-                                  DisplayMemberPath="DisplayText"
-                                  Margin="0,0,0,12"
-                                  MinHeight="40" />
-                        <TextBlock Text="Type part of the hardware name or ID to narrow the list."
-                                   Margin="0,-6,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
-
-                        <TextBlock Text="Brand"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Brand, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="Model"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="Year"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Year, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="Colour"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Colour, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="Vehicle Class"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding VehicleClass, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="Vehicle Type"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding VehicleType, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="Registration Plate"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding RegistrationPlate, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="VIN"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Vin, UpdateSourceTrigger=PropertyChanged}" />
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Job Card Fields"
-                                   Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="These custom fields mirror the job card details inside Wialon."
-                                   Margin="0,6,0,14"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="Read-only access is applied automatically to the standard internal users."
-                                   Margin="0,-6,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
-
-                        <TextBlock Text="Client"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Client, Mode=OneWay}"
-                                 Margin="0,0,0,6"
-                                 IsReadOnly="True" />
-                        <TextBlock Text="Auto-filled from the selected account."
-                                   Margin="0,0,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
-
-                        <TextBlock Text="Contact 1"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Contact1, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="Contact 2"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Contact2, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
-
-                        <TextBlock Text="Make &amp; Model"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding MakeAndModel, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,6"
-                                 IsReadOnly="True" />
-                        <TextBlock Text="Auto-combined from Brand, Model, and Colour."
-                                   Margin="0,0,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
-
-                        <TextBlock Text="Registration &amp; Fleet"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding RegistrationFleet, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,6"
-                                 IsReadOnly="True" />
-                        <TextBlock Text="This mirrors Registration Plate automatically."
-                                   Margin="0,0,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
-
-                    </StackPanel>
-                </Grid>
-            </ScrollViewer>
+                <DataGrid Grid.Row="1"
+                          Grid.ColumnSpan="2"
+                          Margin="0,16,0,0"
+                          ItemsSource="{Binding JobCardHistory}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          IsReadOnly="True"
+                          SelectionUnit="FullRow"
+                          MouseDoubleClick="OnJobCardDoubleClick"
+                          EnableRowVirtualization="True"
+                          EnableColumnVirtualization="True"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Job Card"
+                                            Binding="{Binding JobCardNumber}"
+                                            Width="130" />
+                        <DataGridTextColumn Header="Created"
+                                            Binding="{Binding CreatedAtDisplay}"
+                                            Width="150" />
+                        <DataGridTextColumn Header="Status"
+                                            Binding="{Binding WorkflowStatus}"
+                                            Width="190" />
+                        <DataGridTextColumn Header="Vehicle"
+                                            Binding="{Binding VehicleDisplay}"
+                                            Width="190" />
+                        <DataGridTextColumn Header="Client"
+                                            Binding="{Binding Client}"
+                                            Width="1.2*" />
+                        <DataGridTextColumn Header="Wialon Unit"
+                                            Binding="{Binding UnitDisplay}"
+                                            Width="1.3*" />
+                        <DataGridTextColumn Header="Notes"
+                                            Binding="{Binding StatusNotes}"
+                                            Width="1.7*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
         </Border>
 
         <Border Grid.Row="3"
-                Margin="0,18,0,0"
-                Style="{StaticResource CardBorderStyle}">
+                Margin="0,16,0,0"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="16,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -317,30 +295,25 @@
                     <TextBlock Text="{Binding StatusMessage}"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding CreatedUnitId, StringFormat=Created unit ID: {0}}"
-                               Margin="0,6,0,0"
-                               Foreground="{StaticResource SecondaryTextBrush}" />
-                    <TextBlock Text="{Binding CreatedUnitName, StringFormat=Created unit name: {0}}"
-                               Margin="0,4,0,0"
-                               Foreground="{StaticResource SecondaryTextBrush}" />
+                    <WrapPanel Margin="0,8,0,0"
+                               Orientation="Horizontal">
+                        <TextBlock Text="{Binding CreatedJobCardNumber, StringFormat=Recorded job card: {0}}"
+                                   Margin="0,0,18,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                        <TextBlock Text="{Binding CreatedUnitName, StringFormat=Created unit name: {0}}"
+                                   Margin="0,0,18,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                        <TextBlock Text="{Binding CreatedUnitId, StringFormat=Created unit ID: {0}}"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </WrapPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Right">
-                    <Button Content="Load Wialon Setup"
-                            Width="160"
-                            Margin="0,0,12,0"
-                            Command="{Binding LoadWialonSetupCommand}" />
-                    <Button Content="Create Job Card"
-                            Width="150"
-                            Margin="0,0,12,0"
-                            Style="{StaticResource PrimaryButtonStyle}"
-                            Command="{Binding CreateJobCardCommand}" />
-                    <Button Content="Back to Menu"
-                            Width="120"
-                            Click="OnCloseWindow" />
-                </StackPanel>
+                <TextBlock Grid.Column="1"
+                           VerticalAlignment="Center"
+                           Text="{Binding NextJobCardNumber, StringFormat=Next sequence: {0}}"
+                           FontFamily="Consolas"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource SecondaryTextBrush}" />
             </Grid>
         </Border>
     </Grid>

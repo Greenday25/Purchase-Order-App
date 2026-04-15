@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using PurchaseOrderApp.Models;
 using PurchaseOrderApp.Services;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -16,6 +17,7 @@ public partial class WialonJobCardViewModel : ObservableObject
         "Sindi Mntambo",
         "Recovery Controller"
     };
+    private readonly JobCardRegistryService jobCardRegistryService = new();
     private readonly JobCardSecretStore secretStore = new();
     private string? currentSessionId;
     private long? creatorId;
@@ -35,6 +37,7 @@ public partial class WialonJobCardViewModel : ObservableObject
         }
 
         isInitialized = true;
+        LoadJobCardRegister();
 
         var credentials = secretStore.Load();
         var restoredAccessToken = false;
@@ -79,6 +82,9 @@ public partial class WialonJobCardViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(LoadWialonSetupCommand))]
     [NotifyCanExecuteChangedFor(nameof(CreateJobCardCommand))]
+    [NotifyCanExecuteChangedFor(nameof(LoadExistingUnitsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImportExistingUnitDetailsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RegisterExistingUnitJobCardCommand))]
     private string apiHost = DefaultApiHost;
 
     [ObservableProperty]
@@ -180,6 +186,86 @@ public partial class WialonJobCardViewModel : ObservableObject
     private string registrationFleet = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BillingSystemTypeDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private bool useCustomBillingSystem;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BillingSystemTypeDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private string customBillingSystemName = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private string systemPriceExVat = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BillingSystemTypeDisplay))]
+    [NotifyPropertyChangedFor(nameof(PanicButtonSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private bool hasPanicButton;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PanicButtonSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private string panicButtonPriceExVat = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BillingSystemTypeDisplay))]
+    [NotifyPropertyChangedFor(nameof(EarlyWarningSystemSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private bool hasEarlyWarningSystem;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EarlyWarningSystemSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private string earlyWarningSystemPriceExVat = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BleSensorSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private string bleSensorQuantity = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BleSensorSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private string bleSensorUnitPriceExVat = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BillingSystemTypeDisplay))]
+    [NotifyPropertyChangedFor(nameof(LvCanAdaptorSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private bool hasLvCanAdaptor;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LvCanAdaptorSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private string lvCanAdaptorPriceExVat = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OtherHardwareSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private string otherHardwareDescription = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OtherHardwareSummaryDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingTotalExVatDisplay))]
+    [NotifyPropertyChangedFor(nameof(BillingSummaryDisplay))]
+    private string otherHardwarePriceExVat = string.Empty;
+
+    [ObservableProperty]
+    private string billingNotes = string.Empty;
+
+    [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateJobCardCommand))]
     private WialonHardwareTypeOption? selectedHardwareType;
 
@@ -209,9 +295,38 @@ public partial class WialonJobCardViewModel : ObservableObject
     private ObservableCollection<WialonAccountOption> accountOptions = [];
 
     [ObservableProperty]
+    private ObservableCollection<JobCardHistoryItem> jobCardHistory = [];
+
+    [ObservableProperty]
+    private ObservableCollection<WialonUnitSummary> existingWialonUnits = [];
+
+    [ObservableProperty]
+    private ObservableCollection<WialonUnitSummary> filteredExistingWialonUnits = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ImportExistingUnitDetailsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RegisterExistingUnitJobCardCommand))]
+    private WialonUnitSummary? selectedExistingWialonUnit;
+
+    [ObservableProperty]
+    private string existingUnitSearchText = string.Empty;
+
+    [ObservableProperty]
+    private string existingUnitsStatusMessage = "Load existing Wialon units when you need to capture a historical job card.";
+
+    [ObservableProperty]
+    private string nextJobCardNumber = "JC-00100";
+
+    [ObservableProperty]
+    private string? createdJobCardNumber;
+
+    [ObservableProperty]
     private string statusMessage = string.Empty;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(LoadExistingUnitsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ImportExistingUnitDetailsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RegisterExistingUnitJobCardCommand))]
     private bool isBusy;
 
     public string CurrentCreatorDisplay =>
@@ -232,7 +347,45 @@ public partial class WialonJobCardViewModel : ObservableObject
             ? "Pending"
             : ResolvedPhoneNumber;
 
+    public string BillingSystemTypeDisplay =>
+        JobCardBillingHelper.ResolveSystemType(
+            UseCustomBillingSystem,
+            CustomBillingSystemName,
+            HasPanicButton,
+            HasEarlyWarningSystem,
+            HasLvCanAdaptor);
+
+    public string PanicButtonSummaryDisplay => JobCardBillingHelper.BuildOptionalLineDisplay(HasPanicButton, PanicButtonPriceExVat);
+
+    public string EarlyWarningSystemSummaryDisplay => JobCardBillingHelper.BuildOptionalLineDisplay(HasEarlyWarningSystem, EarlyWarningSystemPriceExVat);
+
+    public string BleSensorSummaryDisplay => JobCardBillingHelper.BuildBleSensorDisplay(BleSensorQuantity, BleSensorUnitPriceExVat);
+
+    public string LvCanAdaptorSummaryDisplay => JobCardBillingHelper.BuildOptionalLineDisplay(HasLvCanAdaptor, LvCanAdaptorPriceExVat);
+
+    public string OtherHardwareSummaryDisplay => JobCardBillingHelper.BuildOtherHardwareDisplay(OtherHardwareDescription, OtherHardwarePriceExVat);
+
+    public string BillingTotalExVatDisplay =>
+        $"{JobCardBillingHelper.FormatAmount(JobCardBillingHelper.CalculateTotalExVat(
+            SystemPriceExVat,
+            HasPanicButton,
+            PanicButtonPriceExVat,
+            HasEarlyWarningSystem,
+            EarlyWarningSystemPriceExVat,
+            BleSensorQuantity,
+            BleSensorUnitPriceExVat,
+            HasLvCanAdaptor,
+            LvCanAdaptorPriceExVat,
+            OtherHardwarePriceExVat))} ex VAT";
+
+    public string BillingSummaryDisplay => $"{BillingSystemTypeDisplay} | Total: {BillingTotalExVatDisplay}";
+
     public bool IsWialonConnected => !string.IsNullOrWhiteSpace(currentSessionId) && creatorId.HasValue;
+
+    partial void OnExistingUnitSearchTextChanged(string value)
+    {
+        ApplyExistingUnitFilter();
+    }
 
     [RelayCommand(CanExecute = nameof(CanLoadWialonSetup))]
     private async Task LoadWialonSetupAsync()
@@ -252,6 +405,11 @@ public partial class WialonJobCardViewModel : ObservableObject
             HardwareTypeSearchText = string.Empty;
             AccountOptions = [];
             availableUsers = new Dictionary<long, string>();
+            ExistingWialonUnits = [];
+            FilteredExistingWialonUnits = [];
+            SelectedExistingWialonUnit = null;
+            ExistingUnitSearchText = string.Empty;
+            ExistingUnitsStatusMessage = "Load existing Wialon units when you need to capture a historical job card.";
             SelectedHardwareType = null;
             SelectedAccount = null;
             CreatedUnitId = null;
@@ -401,6 +559,421 @@ public partial class WialonJobCardViewModel : ObservableObject
         }
     }
 
+    private void LoadJobCardRegister()
+    {
+        try
+        {
+            jobCardRegistryService.EnsureSchema();
+            NextJobCardNumber = jobCardRegistryService.GetNextJobCardNumber().JobCardNumber;
+
+            var historyItems = jobCardRegistryService
+                .GetRecentJobCards()
+                .Select(record => new JobCardHistoryItem
+                {
+                    JobCardRecordId = record.JobCardRecordId,
+                    JobCardNumber = record.JobCardNumber,
+                    CreatedAt = record.CreatedAt,
+                    WorkflowStatus = record.WorkflowStatus,
+                    VehicleDisplay = GetVehicleDisplay(record.RegistrationPlate, record.Vin, record.JobCardName),
+                    Client = record.Client,
+                    WialonUnitName = record.WialonUnitName,
+                    WialonUnitId = record.WialonUnitId,
+                    StatusNotes = record.StatusNotes ?? string.Empty
+                })
+                .ToList();
+
+            JobCardHistory = new ObservableCollection<JobCardHistoryItem>(historyItems);
+        }
+        catch
+        {
+            NextJobCardNumber = "Unavailable";
+            JobCardHistory = [];
+        }
+    }
+
+    public void RefreshJobCardRegister()
+    {
+        LoadJobCardRegister();
+    }
+
+    private JobCardRecord? TryRecordCreatedJobCard(
+        WialonCreatedUnit? createdUnit,
+        string? resolvedPhoneNumber,
+        string workflowStatus,
+        string? statusNotes)
+    {
+        if (createdUnit is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var createdRecord = jobCardRegistryService.SaveCreatedJobCard(
+                new JobCardRegistryService.SaveJobCardRequest(
+                    workflowStatus,
+                    statusNotes,
+                    createdUnit.UnitId,
+                    createdUnit.Name,
+                    SelectedAccount?.AccountId,
+                    SelectedAccount?.AccountName,
+                    creatorId,
+                    CreatorName,
+                    SelectedHardwareType?.HardwareTypeId,
+                    SelectedHardwareType?.DisplayText,
+                    GetResolvedUnitName(),
+                    UniqueId,
+                    Iccid,
+                    resolvedPhoneNumber,
+                    Brand,
+                    Model,
+                    Year,
+                    Colour,
+                    VehicleClass,
+                    VehicleType,
+                    RegistrationPlate,
+                    Vin,
+                    Client,
+                    Contact1,
+                    Contact2,
+                    MakeAndModel,
+                    RegistrationFleet,
+                    UseCustomBillingSystem,
+                    CustomBillingSystemName,
+                    SystemPriceExVat,
+                    HasPanicButton,
+                    PanicButtonPriceExVat,
+                    HasEarlyWarningSystem,
+                    EarlyWarningSystemPriceExVat,
+                    BleSensorQuantity,
+                    BleSensorUnitPriceExVat,
+                    HasLvCanAdaptor,
+                    LvCanAdaptorPriceExVat,
+                    OtherHardwareDescription,
+                    OtherHardwarePriceExVat,
+                    BillingNotes));
+
+            CreatedJobCardNumber = createdRecord.JobCardNumber;
+            LoadJobCardRegister();
+            return createdRecord;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string GetVehicleDisplay(string? registrationPlate, string? vin, string? jobCardName)
+    {
+        var registration = registrationPlate?.Trim();
+        if (!string.IsNullOrWhiteSpace(registration))
+        {
+            return registration;
+        }
+
+        var vinValue = vin?.Trim();
+        if (!string.IsNullOrWhiteSpace(vinValue))
+        {
+            return vinValue;
+        }
+
+        return string.IsNullOrWhiteSpace(jobCardName) ? "Pending" : jobCardName.Trim();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanLoadExistingUnits))]
+    private async Task LoadExistingUnitsAsync()
+    {
+        if (!IsWialonConnected)
+        {
+            StatusMessage = "Load the Wialon setup before loading existing units.";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Loading existing Wialon units...";
+            ExistingUnitsStatusMessage = "Loading existing Wialon units...";
+
+            var client = new WialonApiClient(ApiHost);
+            var units = await client.GetUnitsAsync(currentSessionId!).ConfigureAwait(true);
+
+            ExistingWialonUnits = new ObservableCollection<WialonUnitSummary>(units);
+            ApplyExistingUnitFilter();
+
+            ExistingUnitsStatusMessage = units.Count == 0
+                ? "No existing Wialon units were returned."
+                : $"Loaded {units.Count} existing Wialon unit(s).";
+            StatusMessage = ExistingUnitsStatusMessage;
+        }
+        catch (WialonApiException ex)
+        {
+            ExistingUnitsStatusMessage = ex.Message;
+            StatusMessage = ex.Message;
+        }
+        catch (HttpRequestException ex)
+        {
+            ExistingUnitsStatusMessage = $"Unable to reach Wialon: {ex.Message}";
+            StatusMessage = ExistingUnitsStatusMessage;
+        }
+        catch (Exception ex)
+        {
+            ExistingUnitsStatusMessage = $"Unexpected error while loading existing units: {ex.Message}";
+            StatusMessage = ExistingUnitsStatusMessage;
+        }
+        finally
+        {
+            IsBusy = false;
+            LoadExistingUnitsCommand.NotifyCanExecuteChanged();
+            ImportExistingUnitDetailsCommand.NotifyCanExecuteChanged();
+            RegisterExistingUnitJobCardCommand.NotifyCanExecuteChanged();
+            CreateJobCardCommand.NotifyCanExecuteChanged();
+            LoadWialonSetupCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanImportExistingUnitDetails))]
+    private async Task ImportExistingUnitDetailsAsync()
+    {
+        if (!IsWialonConnected)
+        {
+            ExistingUnitsStatusMessage = "Load the Wialon setup before importing an existing unit.";
+            StatusMessage = ExistingUnitsStatusMessage;
+            return;
+        }
+
+        if (SelectedExistingWialonUnit is null)
+        {
+            ExistingUnitsStatusMessage = "Select an existing Wialon unit first.";
+            StatusMessage = ExistingUnitsStatusMessage;
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = $"Loading the Wialon details for {SelectedExistingWialonUnit.Name}...";
+
+            var client = new WialonApiClient(ApiHost);
+            var details = await client.GetUnitDetailsAsync(currentSessionId!, SelectedExistingWialonUnit.UnitId).ConfigureAwait(true);
+
+            ApplyExistingUnitDetails(details);
+            ExistingUnitsStatusMessage = $"Loaded details from existing unit {details.Name} ({details.UnitId}).";
+            StatusMessage = ExistingUnitsStatusMessage;
+        }
+        catch (WialonApiException ex)
+        {
+            ExistingUnitsStatusMessage = ex.Message;
+            StatusMessage = ex.Message;
+        }
+        catch (HttpRequestException ex)
+        {
+            ExistingUnitsStatusMessage = $"Unable to reach Wialon: {ex.Message}";
+            StatusMessage = ExistingUnitsStatusMessage;
+        }
+        catch (Exception ex)
+        {
+            ExistingUnitsStatusMessage = $"Unexpected error while loading unit details: {ex.Message}";
+            StatusMessage = ExistingUnitsStatusMessage;
+        }
+        finally
+        {
+            IsBusy = false;
+            LoadExistingUnitsCommand.NotifyCanExecuteChanged();
+            ImportExistingUnitDetailsCommand.NotifyCanExecuteChanged();
+            RegisterExistingUnitJobCardCommand.NotifyCanExecuteChanged();
+            CreateJobCardCommand.NotifyCanExecuteChanged();
+            LoadWialonSetupCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRegisterExistingUnitJobCard))]
+    private Task RegisterExistingUnitJobCardAsync()
+    {
+        if (!IsWialonConnected)
+        {
+            ExistingUnitsStatusMessage = "Load the Wialon setup before recording a historical job card.";
+            StatusMessage = ExistingUnitsStatusMessage;
+            return Task.CompletedTask;
+        }
+
+        if (SelectedExistingWialonUnit is null)
+        {
+            ExistingUnitsStatusMessage = "Select an existing Wialon unit first.";
+            StatusMessage = ExistingUnitsStatusMessage;
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            var createdRecord = jobCardRegistryService.SaveCreatedJobCard(
+                new JobCardRegistryService.SaveJobCardRequest(
+                    JobCardWorkflowStatuses.AwaitingInstallationPhotos,
+                    "Registered from an existing Wialon unit.",
+                    SelectedExistingWialonUnit.UnitId,
+                    string.IsNullOrWhiteSpace(CreatedUnitName) ? SelectedExistingWialonUnit.Name : CreatedUnitName,
+                    SelectedExistingWialonUnit.AccountId,
+                    NormalizeLegacyText(SelectedExistingWialonUnit.AccountLabel) ?? SelectedAccount?.AccountName,
+                    creatorId,
+                    CreatorName,
+                    SelectedExistingWialonUnit.HardwareTypeId ?? SelectedHardwareType?.HardwareTypeId,
+                    NormalizeLegacyText(SelectedExistingWialonUnit.HardwareTypeName) ?? SelectedHardwareType?.DisplayText,
+                    GetResolvedUnitName(),
+                    UniqueId,
+                    Iccid,
+                    string.IsNullOrWhiteSpace(ResolvedPhoneNumber) ? SelectedExistingWialonUnit.PhoneNumber : ResolvedPhoneNumber,
+                    Brand,
+                    Model,
+                    Year,
+                    Colour,
+                    VehicleClass,
+                    VehicleType,
+                    RegistrationPlate,
+                    Vin,
+                    Client,
+                    Contact1,
+                    Contact2,
+                    MakeAndModel,
+                    RegistrationFleet,
+                    UseCustomBillingSystem,
+                    CustomBillingSystemName,
+                    SystemPriceExVat,
+                    HasPanicButton,
+                    PanicButtonPriceExVat,
+                    HasEarlyWarningSystem,
+                    EarlyWarningSystemPriceExVat,
+                    BleSensorQuantity,
+                    BleSensorUnitPriceExVat,
+                    HasLvCanAdaptor,
+                    LvCanAdaptorPriceExVat,
+                    OtherHardwareDescription,
+                    OtherHardwarePriceExVat,
+                    BillingNotes));
+
+            CreatedJobCardNumber = createdRecord.JobCardNumber;
+            CreatedUnitId = SelectedExistingWialonUnit.UnitId;
+            CreatedUnitName = SelectedExistingWialonUnit.Name;
+            LoadJobCardRegister();
+            StatusMessage = $"Recorded historical job card {createdRecord.JobCardNumber} for existing Wialon unit {SelectedExistingWialonUnit.Name} ({SelectedExistingWialonUnit.UnitId}).";
+            ExistingUnitsStatusMessage = "Historical job card recorded locally.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"I couldn't record that historical job card: {ex.Message}";
+            ExistingUnitsStatusMessage = StatusMessage;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private bool CanLoadExistingUnits()
+    {
+        return !IsBusy && IsWialonConnected;
+    }
+
+    private bool CanImportExistingUnitDetails()
+    {
+        return !IsBusy;
+    }
+
+    private bool CanRegisterExistingUnitJobCard()
+    {
+        return !IsBusy;
+    }
+
+    private void ApplyExistingUnitFilter()
+    {
+        var searchText = ExistingUnitSearchText?.Trim() ?? string.Empty;
+        var filteredUnits = string.IsNullOrWhiteSpace(searchText)
+            ? ExistingWialonUnits.ToList()
+            : ExistingWialonUnits
+                .Where(unit =>
+                    unit.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    unit.UnitId.ToString(CultureInfo.InvariantCulture).Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrWhiteSpace(unit.AccountDisplay) && unit.AccountDisplay.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(unit.UniqueId) && unit.UniqueId.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(unit.PhoneNumber) && unit.PhoneNumber.Contains(searchText, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+        FilteredExistingWialonUnits = new ObservableCollection<WialonUnitSummary>(filteredUnits);
+        if (SelectedExistingWialonUnit is not null &&
+            filteredUnits.All(unit => unit.UnitId != SelectedExistingWialonUnit.UnitId))
+        {
+            SelectedExistingWialonUnit = filteredUnits.FirstOrDefault();
+        }
+    }
+
+    private void ApplyExistingUnitDetails(WialonUnitDetails details)
+    {
+        CreatedUnitId = details.UnitId;
+        CreatedUnitName = details.Name;
+        JobCardName = details.Name;
+
+        if (!string.IsNullOrWhiteSpace(details.UniqueId))
+        {
+            UniqueId = details.UniqueId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(details.PhoneNumber))
+        {
+            ResolvedPhoneNumber = details.PhoneNumber;
+        }
+
+        if (details.AccountId.HasValue)
+        {
+            var matchedAccount = AccountOptions.FirstOrDefault(option => option.AccountId == details.AccountId.Value);
+            if (matchedAccount is not null)
+            {
+                SelectedAccount = matchedAccount;
+            }
+        }
+
+        if (details.HardwareTypeId.HasValue)
+        {
+            var matchedHardwareType = HardwareTypes.FirstOrDefault(option => option.HardwareTypeId == details.HardwareTypeId.Value);
+            if (matchedHardwareType is not null)
+            {
+                SelectedHardwareType = matchedHardwareType;
+            }
+        }
+
+        Brand = GetDetailFieldValue(details, "brand") ?? Brand;
+        Model = GetDetailFieldValue(details, "model") ?? Model;
+        Year = GetDetailFieldValue(details, "year") ?? Year;
+        Colour = GetDetailFieldValue(details, "color", "colour") ?? Colour;
+        VehicleClass = GetDetailFieldValue(details, "vehicle_class") ?? VehicleClass;
+        VehicleType = GetDetailFieldValue(details, "vehicle_type") ?? VehicleType;
+        RegistrationPlate = GetDetailFieldValue(details, "registration_plate") ?? RegistrationPlate;
+        Vin = GetDetailFieldValue(details, "vin") ?? Vin;
+        Client = GetDetailFieldValue(details, "Client") ?? Client;
+        Contact1 = GetDetailFieldValue(details, "Contact 1") ?? Contact1;
+        Contact2 = GetDetailFieldValue(details, "Contact 2") ?? Contact2;
+        MakeAndModel = GetDetailFieldValue(details, "Make & Model") ?? MakeAndModel;
+        RegistrationFleet = GetDetailFieldValue(details, "Registration & Fleet") ?? RegistrationFleet;
+    }
+
+    private static string? GetDetailFieldValue(WialonUnitDetails details, params string[] fieldNames)
+    {
+        foreach (var fieldName in fieldNames)
+        {
+            var match = details.Fields.FirstOrDefault(field =>
+                string.Equals(field.Name, fieldName, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(match?.Value))
+            {
+                return match.Value.Trim();
+            }
+        }
+
+        return null;
+    }
+
+    private static string? NormalizeLegacyText(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
     [RelayCommand(CanExecute = nameof(CanCreateJobCard))]
     private async Task CreateJobCardAsync()
     {
@@ -428,16 +1001,26 @@ public partial class WialonJobCardViewModel : ObservableObject
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(FlickswitchApiKey))
+        {
+            StatusMessage = "Add the Flickswitch API key in Connectivity Settings before creating a new job card.";
+            return;
+        }
+
         SaveCredentials();
+        WialonCreatedUnit? createdUnit = null;
+        JobCardRecord? createdRecord = null;
+        string? phoneNumber = null;
 
         try
         {
             IsBusy = true;
+            CreatedJobCardNumber = null;
             var readOnlyAccessTargets = ResolveReadOnlyAccessTargets();
             StatusMessage = "Looking up the phone number from Flickswitch...";
 
             var flickswitchClient = new FlickswitchApiClient();
-            var phoneNumber = await flickswitchClient.LookupMsisdnAsync(
+            phoneNumber = await flickswitchClient.LookupMsisdnAsync(
                 FlickswitchApiKey.Trim(),
                 Iccid.Trim()).ConfigureAwait(true);
 
@@ -445,7 +1028,7 @@ public partial class WialonJobCardViewModel : ObservableObject
 
             var wialonClient = new WialonApiClient(ApiHost);
             StatusMessage = $"Creating the unit under {SelectedAccount.AccountName}...";
-            var createdUnit = await wialonClient.CreateUnitAsync(
+            createdUnit = await wialonClient.CreateUnitAsync(
                 currentSessionId!,
                 SelectedAccount.CreatorId,
                 GetResolvedUnitName(),
@@ -474,30 +1057,71 @@ public partial class WialonJobCardViewModel : ObservableObject
                 createdUnit.UnitId,
                 readOnlyAccessTargets).ConfigureAwait(true);
 
+            createdRecord = TryRecordCreatedJobCard(
+                createdUnit,
+                phoneNumber,
+                JobCardWorkflowStatuses.Created,
+                null);
+
             SaveCredentials();
-            StatusMessage = $"Created Wialon unit {createdUnit.Name} ({createdUnit.UnitId}) under {SelectedAccount.AccountName}.";
+            StatusMessage = createdRecord is null
+                ? $"Created Wialon unit {createdUnit.Name} ({createdUnit.UnitId}) under {SelectedAccount.AccountName}."
+                : $"Created Wialon unit {createdUnit.Name} ({createdUnit.UnitId}) under {SelectedAccount.AccountName}. Job card {createdRecord.JobCardNumber} recorded.";
         }
         catch (FlickswitchApiException ex)
         {
-            StatusMessage = ex.Message;
+            createdRecord ??= TryRecordCreatedJobCard(
+                createdUnit,
+                phoneNumber,
+                JobCardWorkflowStatuses.CreatedWithWarnings,
+                ex.Message);
+            StatusMessage = createdRecord is null
+                ? ex.Message
+                : $"{ex.Message} Job card {createdRecord.JobCardNumber} was still recorded for follow-up.";
         }
         catch (WialonApiException ex)
         {
-            StatusMessage = ex.Message;
+            createdRecord ??= TryRecordCreatedJobCard(
+                createdUnit,
+                phoneNumber,
+                JobCardWorkflowStatuses.CreatedWithWarnings,
+                ex.Message);
+            StatusMessage = createdRecord is null
+                ? ex.Message
+                : $"{ex.Message} Job card {createdRecord.JobCardNumber} was still recorded for follow-up.";
         }
         catch (HttpRequestException ex)
         {
-            StatusMessage = $"Unable to reach the API: {ex.Message}";
+            createdRecord ??= TryRecordCreatedJobCard(
+                createdUnit,
+                phoneNumber,
+                JobCardWorkflowStatuses.CreatedWithWarnings,
+                ex.Message);
+            var message = $"Unable to reach the API: {ex.Message}";
+            StatusMessage = createdRecord is null
+                ? message
+                : $"{message} Job card {createdRecord.JobCardNumber} was still recorded for follow-up.";
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Unexpected error while creating the job card: {ex.Message}";
+            createdRecord ??= TryRecordCreatedJobCard(
+                createdUnit,
+                phoneNumber,
+                JobCardWorkflowStatuses.CreatedWithWarnings,
+                ex.Message);
+            var message = $"Unexpected error while creating the job card: {ex.Message}";
+            StatusMessage = createdRecord is null
+                ? message
+                : $"{message} Job card {createdRecord.JobCardNumber} was still recorded for follow-up.";
         }
         finally
         {
             IsBusy = false;
             CreateJobCardCommand.NotifyCanExecuteChanged();
             LoadWialonSetupCommand.NotifyCanExecuteChanged();
+            LoadExistingUnitsCommand.NotifyCanExecuteChanged();
+            ImportExistingUnitDetailsCommand.NotifyCanExecuteChanged();
+            RegisterExistingUnitJobCardCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -508,15 +1132,7 @@ public partial class WialonJobCardViewModel : ObservableObject
 
     private bool CanCreateJobCard()
     {
-        return !IsBusy &&
-               IsWialonConnected &&
-               SelectedHardwareType is not null &&
-               SelectedAccount is not null &&
-               SelectedAccount.CreatorId > 0 &&
-               !string.IsNullOrWhiteSpace(GetResolvedUnitName()) &&
-               !string.IsNullOrWhiteSpace(UniqueId) &&
-               !string.IsNullOrWhiteSpace(Iccid) &&
-               !string.IsNullOrWhiteSpace(FlickswitchApiKey);
+        return !IsBusy;
     }
 
     private async Task ApplyProfileFieldsAsync(

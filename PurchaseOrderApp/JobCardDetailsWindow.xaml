@@ -1,0 +1,523 @@
+<Window x:Class="PurchaseOrderApp.JobCardDetailsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Job Card Details"
+        Height="940"
+        Width="1380"
+        MinHeight="820"
+        MinWidth="1180"
+        WindowStartupLocation="CenterOwner">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource HeroCardStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="{Binding JobCardNumber}"
+                               FontSize="28"
+                               FontWeight="Bold" />
+                    <TextBlock Text="Double-clicked job card details, installation evidence, and printable PDF output all live here."
+                               Margin="0,8,0,0"
+                               FontSize="14"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <WrapPanel Grid.Column="1"
+                           Orientation="Horizontal"
+                           VerticalAlignment="Top">
+                    <Button Content="Refresh"
+                            Width="100"
+                            Margin="0,0,12,0"
+                            Click="OnRefresh" />
+                    <Button Content="Close"
+                            Width="100"
+                            Click="OnCloseWindow" />
+                </WrapPanel>
+            </Grid>
+        </Border>
+
+        <WrapPanel Grid.Row="1"
+                   Margin="0,16,0,16"
+                   Orientation="Horizontal">
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Width="250"
+                    Margin="0,0,16,0"
+                    Padding="12,8">
+                <StackPanel>
+                    <TextBlock Text="STATUS"
+                               FontSize="11.5"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="{Binding WorkflowStatus}"
+                               Margin="0,4,0,0"
+                               FontWeight="Bold" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Width="250"
+                    Margin="0,0,16,0"
+                    Padding="12,8">
+                <StackPanel>
+                    <TextBlock Text="CREATED"
+                               FontSize="11.5"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="{Binding CreatedAtDisplay}"
+                               Margin="0,4,0,0"
+                               FontWeight="Bold" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Width="330"
+                    Margin="0,0,16,0"
+                    Padding="12,8">
+                <StackPanel>
+                    <TextBlock Text="EVIDENCE"
+                               FontSize="11.5"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="{Binding EvidenceStatusDisplay}"
+                               Margin="0,4,0,0"
+                               FontWeight="Bold"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Width="350"
+                    Padding="12,8">
+                <StackPanel>
+                    <TextBlock Text="WIALON UNIT"
+                               FontSize="11.5"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="{Binding UnitDisplay}"
+                               Margin="0,4,0,0"
+                               FontWeight="Bold"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </WrapPanel>
+
+        <Border Grid.Row="2"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="18">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0"
+                                Style="{StaticResource CardBorderStyle}"
+                                Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="Wialon Details"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="{Binding Client, StringFormat=Client: {0}}"
+                                           Margin="0,10,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding AccountDisplay, StringFormat=Account: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding CreatorDisplay, StringFormat=Creator: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding HardwareTypeDisplay, StringFormat=Hardware Type: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding JobCardName, StringFormat=Unit Name: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding UniqueId, StringFormat=Unique ID: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding Iccid, StringFormat=ICCID: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding PhoneNumberDisplay, StringFormat=Phone: {0}}"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="2"
+                                Style="{StaticResource CardBorderStyle}"
+                                Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="Vehicle Details"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="{Binding Brand, StringFormat=Brand: {0}}"
+                                           Margin="0,10,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding Model, StringFormat=Model: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding Year, StringFormat=Year: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding Colour, StringFormat=Colour: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding VehicleClass, StringFormat=Vehicle Class: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding VehicleType, StringFormat=Vehicle Type: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding RegistrationPlate, StringFormat=Registration Plate: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding Vin, StringFormat=VIN: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding MakeAndModel, StringFormat=Make and Model: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding RegistrationFleet, StringFormat=Registration and Fleet: {0}}"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Margin="0,18,0,0"
+                            Style="{StaticResource CardBorderStyle}"
+                            Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="Contacts"
+                                       Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="{Binding Contact1, StringFormat=Contact 1: {0}}"
+                                       Margin="0,10,0,8"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                            <TextBlock Text="{Binding Contact2, StringFormat=Contact 2: {0}}"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Margin="0,18,0,0"
+                            Style="{StaticResource CardBorderStyle}"
+                            Padding="14"
+                            Background="{StaticResource AccentSoftBrush}"
+                            Cursor="Hand"
+                            ToolTip="Double-click to edit billing details."
+                            MouseLeftButtonDown="OnBillingCardMouseLeftButtonDown">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Billing"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="{Binding BillingSystemTypeDisplay, StringFormat=System Installed: {0}}"
+                                           Margin="0,10,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding SystemPriceExVatDisplay, StringFormat=System Price: {0} ex VAT}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding PanicButtonSummaryDisplay, StringFormat=Panic Button: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding EarlyWarningSystemSummaryDisplay, StringFormat=Early Warning System: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding BleSensorSummaryDisplay, StringFormat=BLE Sensors: {0}}"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Billing Summary"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="Double-click this billing card to edit the installed system and pricing."
+                                           Margin="0,6,0,10"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding LvCanAdaptorSummaryDisplay, StringFormat=LV CAN Adaptor: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <TextBlock Text="{Binding OtherHardwareSummaryDisplay, StringFormat=Other Hardware: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding BillingNotesDisplay, StringFormat=Billing Notes: {0}}"
+                                           Margin="0,0,0,8"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding BillingTotalExVatDisplay, StringFormat=Total: {0}}"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="18" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0"
+                                Grid.Column="0"
+                                Style="{StaticResource CardBorderStyle}"
+                                Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="Vehicle Photo"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                <Border Margin="0,12,0,8"
+                                        Height="122"
+                                        Background="{StaticResource CardTintBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        AllowDrop="True"
+                                        Tag="Vehicle"
+                                        PreviewDragOver="OnPhotoDragOver"
+                                        Drop="OnPhotoDrop">
+                                    <StackPanel VerticalAlignment="Center"
+                                                HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding VehiclePhotoStatus, StringFormat=Status: {0}}"
+                                                   HorizontalAlignment="Center"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                                        <TextBlock Text="Drag and drop an image here or click Upload."
+                                                   Margin="0,8,0,0"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="{Binding VehiclePhotoStatus}"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <WrapPanel Margin="0,10,0,0"
+                                           Orientation="Horizontal">
+                                    <Button Content="Upload"
+                                            Width="90"
+                                            Margin="0,0,12,0"
+                                            Tag="Vehicle"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Click="OnUploadPhoto" />
+                                    <Button Content="Open"
+                                            Width="90"
+                                            Tag="Vehicle"
+                                            Click="OnOpenPhoto" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="0"
+                                Grid.Column="2"
+                                Style="{StaticResource CardBorderStyle}"
+                                Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="Registration Photo"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                <Border Margin="0,12,0,8"
+                                        Height="122"
+                                        Background="{StaticResource CardTintBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        AllowDrop="True"
+                                        Tag="Registration"
+                                        PreviewDragOver="OnPhotoDragOver"
+                                        Drop="OnPhotoDrop">
+                                    <StackPanel VerticalAlignment="Center"
+                                                HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding RegistrationPhotoStatus, StringFormat=Status: {0}}"
+                                                   HorizontalAlignment="Center"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                                        <TextBlock Text="Drag and drop an image here or click Upload."
+                                                   Margin="0,8,0,0"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="{Binding RegistrationPhotoStatus}"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <WrapPanel Margin="0,10,0,0"
+                                           Orientation="Horizontal">
+                                    <Button Content="Upload"
+                                            Width="90"
+                                            Margin="0,0,12,0"
+                                            Tag="Registration"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Click="OnUploadPhoto" />
+                                    <Button Content="Open"
+                                            Width="90"
+                                            Tag="Registration"
+                                            Click="OnOpenPhoto" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="2"
+                                Grid.Column="0"
+                                Style="{StaticResource CardBorderStyle}"
+                                Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="VIN Photo"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                <Border Margin="0,12,0,8"
+                                        Height="122"
+                                        Background="{StaticResource CardTintBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        AllowDrop="True"
+                                        Tag="Vin"
+                                        PreviewDragOver="OnPhotoDragOver"
+                                        Drop="OnPhotoDrop">
+                                    <StackPanel VerticalAlignment="Center"
+                                                HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding VinPhotoStatus, StringFormat=Status: {0}}"
+                                                   HorizontalAlignment="Center"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                                        <TextBlock Text="Drag and drop an image here or click Upload."
+                                                   Margin="0,8,0,0"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="{Binding VinPhotoStatus}"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <WrapPanel Margin="0,10,0,0"
+                                           Orientation="Horizontal">
+                                    <Button Content="Upload"
+                                            Width="90"
+                                            Margin="0,0,12,0"
+                                            Tag="Vin"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Click="OnUploadPhoto" />
+                                    <Button Content="Open"
+                                            Width="90"
+                                            Tag="Vin"
+                                            Click="OnOpenPhoto" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="2"
+                                Grid.Column="2"
+                                Style="{StaticResource CardBorderStyle}"
+                                Padding="14">
+                            <StackPanel>
+                                <TextBlock Text="Tracking Unit Photo"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                <Border Margin="0,12,0,8"
+                                        Height="122"
+                                        Background="{StaticResource CardTintBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        AllowDrop="True"
+                                        Tag="TrackingUnit"
+                                        PreviewDragOver="OnPhotoDragOver"
+                                        Drop="OnPhotoDrop">
+                                    <StackPanel VerticalAlignment="Center"
+                                                HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding TrackingUnitPhotoStatus, StringFormat=Status: {0}}"
+                                                   HorizontalAlignment="Center"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource PrimaryTextBrush}" />
+                                        <TextBlock Text="Drag and drop an image here or click Upload."
+                                                   Margin="0,8,0,0"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="{Binding TrackingUnitPhotoStatus}"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                <WrapPanel Margin="0,10,0,0"
+                                           Orientation="Horizontal">
+                                    <Button Content="Upload"
+                                            Width="90"
+                                            Margin="0,0,12,0"
+                                            Tag="TrackingUnit"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            Click="OnUploadPhoto" />
+                                    <Button Content="Open"
+                                            Width="90"
+                                            Tag="TrackingUnit"
+                                            Click="OnOpenPhoto" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <Border Grid.Row="3"
+                Margin="0,16,0,0"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="{Binding StatusMessage}"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource SecondaryTextBrush}"
+                           TextWrapping="Wrap" />
+
+                <WrapPanel Grid.Column="1"
+                           Orientation="Horizontal"
+                           VerticalAlignment="Center">
+                    <Button Content="Open Folder"
+                            Width="120"
+                            Margin="0,0,12,0"
+                            Click="OnOpenFolder" />
+                    <Button Content="Open PDF"
+                            Width="110"
+                            Margin="0,0,12,0"
+                            Click="OnOpenPdf" />
+                    <Button Content="Export PDF"
+                            Width="120"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Click="OnExportPdf" />
+                </WrapPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
