@@ -35,6 +35,12 @@ public partial class HomeWindow : Window
         jobCardWindow.Show();
     }
 
+    private void OnOpenTrackingCertificates(object sender, RoutedEventArgs e)
+    {
+        var trackingCertificateWindow = new TrackingCertificateWindow();
+        trackingCertificateWindow.Show();
+    }
+
     private async void OnOpenConnectivitySettings(object sender, RoutedEventArgs e)
     {
         var settingsWindow = new ConnectivitySettingsWindow

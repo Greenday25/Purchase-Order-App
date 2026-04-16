@@ -676,6 +676,7 @@ internal sealed class WialonApiClient
         var latitude = GetNullableDouble(item, "pos", "y");
         var longitude = GetNullableDouble(item, "pos", "x");
         var lastMessageUnix = GetNullableLong(item, "lmsg", "t") ?? GetNullableLong(item, "pos", "t");
+        var createdUnix = GetNullableLong(item, "ct");
 
         return new WialonUnitSummary
         {
@@ -690,6 +691,9 @@ internal sealed class WialonApiClient
             AccessRights = GetNullableLong(item, "uacl") ?? 0,
             LastMessageAt = lastMessageUnix.HasValue
                 ? DateTimeOffset.FromUnixTimeSeconds(lastMessageUnix.Value)
+                : null,
+            CreatedAt = createdUnix.HasValue
+                ? DateTimeOffset.FromUnixTimeSeconds(createdUnix.Value)
                 : null,
             Latitude = latitude,
             Longitude = longitude
@@ -717,6 +721,7 @@ internal sealed class WialonApiClient
             HardwareTypeName = summary.HardwareTypeName,
             Guid = GetString(item, "gd"),
             AccessRights = GetNullableLong(item, "uacl") ?? 0,
+            CreatedAt = summary.CreatedAt,
             LastMessageAt = summary.LastMessageAt,
             Latitude = summary.Latitude,
             Longitude = summary.Longitude,
@@ -1210,6 +1215,8 @@ internal sealed class WialonUnitDetails
     public string? HardwareTypeName { get; init; }
 
     public string? Guid { get; init; }
+
+    public DateTimeOffset? CreatedAt { get; init; }
 
     public DateTimeOffset? LastMessageAt { get; init; }
 

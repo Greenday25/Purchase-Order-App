@@ -10,6 +10,8 @@ public sealed class JobCardHistoryItem
 
     public string WorkflowStatus { get; init; } = string.Empty;
 
+    public string JobCardType { get; init; } = string.Empty;
+
     public string VehicleDisplay { get; init; } = string.Empty;
 
     public string Client { get; init; } = string.Empty;

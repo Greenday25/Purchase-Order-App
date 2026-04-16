@@ -140,9 +140,10 @@
 
         <UniformGrid Grid.Row="2"
                      Margin="0,22,0,22"
-                     Columns="3">
+                     Columns="2"
+                     Rows="2">
             <Button Style="{StaticResource TileButtonStyle}"
-                    Margin="0,0,12,0"
+                    Margin="0,0,12,12"
                     Click="OnOpenPurchaseOrders">
                 <Border Background="{StaticResource AccentBrush}"
                         CornerRadius="18"
@@ -207,7 +208,7 @@
             </Button>
 
             <Button Style="{StaticResource TileButtonStyle}"
-                    Margin="12,0,12,0"
+                    Margin="12,0,0,12"
                     Background="{StaticResource CardBackgroundBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     Click="OnOpenWialonUnits">
@@ -272,7 +273,7 @@
             </Button>
 
             <Button Style="{StaticResource TileButtonStyle}"
-                    Margin="12,0,0,0"
+                    Margin="0,12,12,0"
                     Background="{StaticResource CardBackgroundBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     Click="OnOpenJobCards">
@@ -330,6 +331,71 @@
                                 HorizontalAlignment="Left">
                             <TextBlock Text="Open module"
                                        Foreground="{StaticResource AccentDarkBrush}"
+                                       FontWeight="SemiBold" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Button>
+
+            <Button Style="{StaticResource TileButtonStyle}"
+                    Margin="12,12,0,0"
+                    Background="{StaticResource CardBackgroundBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    Click="OnOpenTrackingCertificates">
+                <Border Background="{StaticResource CardBackgroundBrush}"
+                        CornerRadius="18"
+                        Padding="28"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="52"
+                                    Height="52"
+                                    CornerRadius="16"
+                                    Background="#FFF7D6"
+                                    BorderBrush="#F3D77C"
+                                    BorderThickness="1"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="TC"
+                                           Foreground="#7A5A00"
+                                           FontWeight="Bold"
+                                           FontSize="18"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                            </Border>
+
+                            <StackPanel Margin="16,0,0,0">
+                                <TextBlock Text="Tracking Certificates"
+                                           FontSize="28"
+                                           FontWeight="Bold" />
+                                <TextBlock Text="Build certificate PDFs from Wialon data"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           Margin="0,4,0,0"
+                                           FontSize="13" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <TextBlock Grid.Row="1"
+                                   Text="Open the certificate workspace to load Wialon units, select a vehicle, and export the installation certificate in the Capital Air layout."
+                                   Margin="0,24,0,0"
+                                   FontSize="17"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center" />
+
+                        <Border Grid.Row="2"
+                                Margin="0,24,0,0"
+                                Background="#FFF7D6"
+                                CornerRadius="12"
+                                Padding="12,8"
+                                HorizontalAlignment="Left">
+                            <TextBlock Text="Open module"
+                                       Foreground="#7A5A00"
                                        FontWeight="SemiBold" />
                         </Border>
                     </Grid>

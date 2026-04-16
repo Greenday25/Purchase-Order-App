@@ -40,6 +40,9 @@ public partial class WialonUnitSummary : ObservableObject
     private DateTimeOffset? lastMessageAt;
 
     [ObservableProperty]
+    private DateTimeOffset? createdAt;
+
+    [ObservableProperty]
     private double? latitude;
 
     [ObservableProperty]

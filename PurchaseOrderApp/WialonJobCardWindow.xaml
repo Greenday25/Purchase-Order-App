@@ -261,6 +261,9 @@
                         <DataGridTextColumn Header="Created"
                                             Binding="{Binding CreatedAtDisplay}"
                                             Width="150" />
+                        <DataGridTextColumn Header="Type"
+                                            Binding="{Binding JobCardType}"
+                                            Width="120" />
                         <DataGridTextColumn Header="Status"
                                             Binding="{Binding WorkflowStatus}"
                                             Width="190" />

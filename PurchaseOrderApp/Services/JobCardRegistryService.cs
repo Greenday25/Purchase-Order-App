@@ -14,6 +14,7 @@ internal sealed class JobCardRegistryService
     internal sealed record JobCardNumberInfo(int SequenceNumber, string JobCardNumber);
 
     internal sealed record SaveJobCardRequest(
+        string JobCardType,
         string WorkflowStatus,
         string? StatusNotes,
         long? WialonUnitId,
@@ -120,6 +121,9 @@ internal sealed class JobCardRegistryService
             SequenceNumber = nextSequence,
             JobCardNumber = FormatJobCardNumber(nextSequence),
             CreatedAt = DateTime.UtcNow,
+            JobCardType = string.IsNullOrWhiteSpace(request.JobCardType)
+                ? JobCardTypes.Installation
+                : request.JobCardType.Trim(),
             WorkflowStatus = string.IsNullOrWhiteSpace(request.WorkflowStatus)
                 ? JobCardWorkflowStatuses.Created
                 : request.WorkflowStatus.Trim(),
@@ -249,6 +253,7 @@ internal sealed class JobCardRegistryService
                 SequenceNumber INTEGER NOT NULL,
                 JobCardNumber TEXT NOT NULL,
                 CreatedAt TEXT NOT NULL,
+                JobCardType TEXT NOT NULL DEFAULT 'Installation',
                 WorkflowStatus TEXT NOT NULL,
                 StatusNotes TEXT NULL,
                 DetailsConfirmedAt TEXT NULL,
@@ -302,6 +307,7 @@ internal sealed class JobCardRegistryService
             """);
 
         EnsureColumnExists(db, "UseCustomBillingSystem", "INTEGER NOT NULL DEFAULT 0");
+        EnsureColumnExists(db, "JobCardType", "TEXT NOT NULL DEFAULT 'Installation'");
         EnsureColumnExists(db, "CustomBillingSystemName", "TEXT NULL");
         EnsureColumnExists(db, "SystemPriceExVat", "TEXT NULL");
         EnsureColumnExists(db, "HasPanicButton", "INTEGER NOT NULL DEFAULT 0");

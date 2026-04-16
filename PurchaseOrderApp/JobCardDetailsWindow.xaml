@@ -59,6 +59,21 @@
                     Margin="0,0,16,0"
                     Padding="12,8">
                 <StackPanel>
+                    <TextBlock Text="TYPE"
+                               FontSize="11.5"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource SecondaryTextBrush}" />
+                    <TextBlock Text="{Binding JobCardType}"
+                               Margin="0,4,0,0"
+                               FontWeight="Bold" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Width="250"
+                    Margin="0,0,16,0"
+                    Padding="12,8">
+                <StackPanel>
                     <TextBlock Text="STATUS"
                                FontSize="11.5"
                                FontWeight="SemiBold"

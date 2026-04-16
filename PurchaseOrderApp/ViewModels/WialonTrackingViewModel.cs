@@ -3,6 +3,8 @@ using CommunityToolkit.Mvvm.Input;
 using PurchaseOrderApp.Services;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -15,6 +17,8 @@ public partial class WialonTrackingViewModel : ObservableObject
     private const string DefaultApiHost = "hst-api.wialon.eu";
     private const int ConnectivityHydrationThreshold = 75;
     private readonly JobCardSecretStore secretStore = new();
+    private readonly TrackingCertificateDataBuilder trackingCertificateDataBuilder = new();
+    private readonly TrackingCertificatePdfService trackingCertificatePdfService = new();
     private readonly List<WialonUnitSummary> allUnits = [];
     private CancellationTokenSource? connectivityHydrationCts;
     private IReadOnlyDictionary<long, string> hardwareTypeNames = new Dictionary<long, string>();
@@ -39,6 +43,7 @@ public partial class WialonTrackingViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(LoadUnitsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BulkExportCertificatesForClientCommand))]
     private bool isBusy;
 
     [ObservableProperty]
@@ -54,6 +59,7 @@ public partial class WialonTrackingViewModel : ObservableObject
     private ObservableCollection<WialonAccountFilterOption> accountFilters = [];
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(BulkExportCertificatesForClientCommand))]
     private WialonAccountFilterOption? selectedAccountFilter;
 
     [ObservableProperty]
@@ -223,6 +229,113 @@ public partial class WialonTrackingViewModel : ObservableObject
     private bool CanLoadUnits()
     {
         return !IsBusy && !string.IsNullOrWhiteSpace(AccessToken);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanBulkExportCertificatesForClient))]
+    private async Task BulkExportCertificatesForClientAsync()
+    {
+        if (SelectedAccountFilter is null || string.IsNullOrWhiteSpace(SelectedAccountFilter.FilterValue))
+        {
+            StatusMessage = "Choose a client in the Account filter before bulk exporting certificates.";
+            return;
+        }
+
+        var clientUnits = allUnits
+            .Where(unit => string.Equals(unit.AccountId?.ToString(), SelectedAccountFilter.FilterValue, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(unit => unit.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (clientUnits.Count == 0)
+        {
+            StatusMessage = "No units were found for the selected client.";
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+
+            var clientDisplayName = ResolveClientDisplayName(clientUnits);
+            StatusMessage = $"Preparing {clientUnits.Count} certificate(s) for {clientDisplayName}...";
+
+            var client = new WialonApiClient(ApiHost);
+            var sessionId = await EnsureSessionIdAsync(client).ConfigureAwait(true);
+            var exportFolder = TrackingCertificatePdfService.CreateClientBatchExportFolder(clientDisplayName);
+            var exportedCount = 0;
+            var failedUnits = new List<string>();
+
+            for (var index = 0; index < clientUnits.Count; index++)
+            {
+                var unit = clientUnits[index];
+                StatusMessage = $"Exporting {index + 1} of {clientUnits.Count} for {clientDisplayName}: {unit.Name}";
+
+                try
+                {
+                    var details = await GetUnitDetailsWithRetryAsync(client, sessionId, unit.UnitId).ConfigureAwait(true);
+                    sessionId = CurrentSessionId ?? sessionId;
+
+                    var fallbackHardwareTypeName = ResolveHardwareTypeName(unit, details);
+                    var certificate = trackingCertificateDataBuilder.Build(details, fallbackHardwareTypeName, unit.AccountLabel);
+                    trackingCertificatePdfService.ExportCertificate(certificate, exportFolder);
+                    exportedCount++;
+                }
+                catch (WialonApiException)
+                {
+                    failedUnits.Add(unit.Name);
+                }
+                catch (HttpRequestException)
+                {
+                    failedUnits.Add(unit.Name);
+                }
+                catch (IOException)
+                {
+                    failedUnits.Add(unit.Name);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    failedUnits.Add(unit.Name);
+                }
+            }
+
+            var failureMessage = failedUnits.Count == 0
+                ? string.Empty
+                : $" {failedUnits.Count} unit(s) could not be exported.";
+
+            StatusMessage = exportedCount == 0
+                ? $"No certificates were exported for {clientDisplayName}.{failureMessage}"
+                : $"Exported {exportedCount} certificate(s) for {clientDisplayName} to {exportFolder}.{failureMessage}";
+
+            if (exportedCount > 0)
+            {
+                Process.Start(new ProcessStartInfo(exportFolder)
+                {
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch (WialonApiException ex)
+        {
+            StatusMessage = $"Unable to bulk export certificates: {ex.Message}";
+        }
+        catch (HttpRequestException ex)
+        {
+            StatusMessage = $"Unable to reach Wialon during bulk export: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Unexpected error during bulk export: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private bool CanBulkExportCertificatesForClient()
+    {
+        return !IsBusy &&
+               allUnits.Count > 0 &&
+               SelectedAccountFilter is { FilterValue.Length: > 0 };
     }
 
     partial void OnFilterTextChanged(string value)
@@ -489,5 +602,78 @@ public partial class WialonTrackingViewModel : ObservableObject
         }
 
         return dispatcher.InvokeAsync(action).Task;
+    }
+
+    private async Task<string> EnsureSessionIdAsync(WialonApiClient client, CancellationToken cancellationToken = default)
+    {
+        if (!string.IsNullOrWhiteSpace(CurrentSessionId))
+        {
+            return CurrentSessionId!;
+        }
+
+        var session = await client.LoginAsync(AccessToken.Trim(), cancellationToken).ConfigureAwait(true);
+        CurrentSessionId = session.SessionId;
+        return session.SessionId;
+    }
+
+    private async Task<WialonUnitDetails> GetUnitDetailsWithRetryAsync(
+        WialonApiClient client,
+        string sessionId,
+        long unitId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await client.GetUnitDetailsAsync(sessionId, unitId, cancellationToken).ConfigureAwait(true);
+        }
+        catch (WialonApiException ex) when (ex.ErrorCode == 6)
+        {
+            var refreshedSessionId = await EnsureRefreshedSessionIdAsync(client, cancellationToken).ConfigureAwait(true);
+            return await client.GetUnitDetailsAsync(refreshedSessionId, unitId, cancellationToken).ConfigureAwait(true);
+        }
+    }
+
+    private async Task<string> EnsureRefreshedSessionIdAsync(WialonApiClient client, CancellationToken cancellationToken = default)
+    {
+        CurrentSessionId = null;
+        return await EnsureSessionIdAsync(client, cancellationToken).ConfigureAwait(true);
+    }
+
+    private string ResolveClientDisplayName(IReadOnlyList<WialonUnitSummary> clientUnits)
+    {
+        var accountLabel = clientUnits
+            .Select(unit => unit.AccountLabel)
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+        if (!string.IsNullOrWhiteSpace(accountLabel))
+        {
+            return accountLabel.Trim();
+        }
+
+        var displayText = SelectedAccountFilter?.DisplayText ?? "Client";
+        var suffixIndex = displayText.LastIndexOf(" (", StringComparison.Ordinal);
+        return suffixIndex > 0 ? displayText[..suffixIndex].Trim() : displayText.Trim();
+    }
+
+    private string? ResolveHardwareTypeName(WialonUnitSummary unit, WialonUnitDetails details)
+    {
+        if (!string.IsNullOrWhiteSpace(details.HardwareTypeName))
+        {
+            return details.HardwareTypeName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(unit.HardwareTypeName))
+        {
+            return unit.HardwareTypeName;
+        }
+
+        var hardwareTypeId = details.HardwareTypeId ?? unit.HardwareTypeId;
+        if (hardwareTypeId.HasValue &&
+            hardwareTypeNames.TryGetValue(hardwareTypeId.Value, out var hardwareTypeName))
+        {
+            return hardwareTypeName;
+        }
+
+        return null;
     }
 }

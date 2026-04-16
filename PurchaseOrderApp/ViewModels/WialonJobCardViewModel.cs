@@ -118,7 +118,34 @@ public partial class WialonJobCardViewModel : ObservableObject
         {
             Client = accountName;
         }
+
+        ApplySelectedAccountExistingUnitFilter();
     }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CreateJobCardCommand))]
+    private string selectedJobCardType = Models.JobCardTypes.Installation;
+
+    partial void OnSelectedJobCardTypeChanged(string value)
+    {
+        OnPropertyChanged(nameof(RequiresExistingUnitSelection));
+        OnPropertyChanged(nameof(CreateJobCardButtonText));
+        OnPropertyChanged(nameof(WialonUnitDetailsHelpText));
+        ApplySelectedAccountExistingUnitFilter();
+        CreateJobCardCommand.NotifyCanExecuteChanged();
+    }
+
+    public IReadOnlyList<string> JobCardTypes => Models.JobCardTypes.All;
+
+    public bool RequiresExistingUnitSelection =>
+        string.Equals(SelectedJobCardType, Models.JobCardTypes.Transfer, StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(SelectedJobCardType, Models.JobCardTypes.Removal, StringComparison.OrdinalIgnoreCase);
+
+    public string CreateJobCardButtonText => RequiresExistingUnitSelection ? "Record Job Card" : "Create Job Card";
+
+    public string WialonUnitDetailsHelpText => RequiresExistingUnitSelection
+        ? "Select an existing unit on the chosen account to auto-fill these fields from Wialon before you record the job card."
+        : "These fields will be written into Wialon when the unit is created.";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CreateJobCardCommand))]
@@ -315,6 +342,34 @@ public partial class WialonJobCardViewModel : ObservableObject
     private string existingUnitsStatusMessage = "Load existing Wialon units when you need to capture a historical job card.";
 
     [ObservableProperty]
+    private ObservableCollection<WialonUnitSummary> selectedAccountExistingWialonUnits = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CreateJobCardCommand))]
+    private WialonUnitSummary? selectedAccountExistingWialonUnit;
+
+    partial void OnSelectedAccountExistingWialonUnitChanged(WialonUnitSummary? value)
+    {
+        if (value is null || !RequiresExistingUnitSelection || !IsWialonConnected)
+        {
+            return;
+        }
+
+        _ = LoadSelectedAccountExistingUnitDetailsAsync(value);
+    }
+
+    [ObservableProperty]
+    private string selectedAccountExistingUnitSearchText = string.Empty;
+
+    partial void OnSelectedAccountExistingUnitSearchTextChanged(string value)
+    {
+        ApplySelectedAccountExistingUnitFilter();
+    }
+
+    [ObservableProperty]
+    private string selectedAccountExistingUnitsStatusMessage = "Select Transfer or Removal to work from an existing Wialon unit.";
+
+    [ObservableProperty]
     private string nextJobCardNumber = "JC-00100";
 
     [ObservableProperty]
@@ -410,6 +465,10 @@ public partial class WialonJobCardViewModel : ObservableObject
             SelectedExistingWialonUnit = null;
             ExistingUnitSearchText = string.Empty;
             ExistingUnitsStatusMessage = "Load existing Wialon units when you need to capture a historical job card.";
+            SelectedAccountExistingWialonUnits = [];
+            SelectedAccountExistingWialonUnit = null;
+            SelectedAccountExistingUnitSearchText = string.Empty;
+            SelectedAccountExistingUnitsStatusMessage = "Select Transfer or Removal to work from an existing Wialon unit.";
             SelectedHardwareType = null;
             SelectedAccount = null;
             CreatedUnitId = null;
@@ -573,6 +632,7 @@ public partial class WialonJobCardViewModel : ObservableObject
                     JobCardRecordId = record.JobCardRecordId,
                     JobCardNumber = record.JobCardNumber,
                     CreatedAt = record.CreatedAt,
+                    JobCardType = record.JobCardType,
                     WorkflowStatus = record.WorkflowStatus,
                     VehicleDisplay = GetVehicleDisplay(record.RegistrationPlate, record.Vin, record.JobCardName),
                     Client = record.Client,
@@ -610,7 +670,7 @@ public partial class WialonJobCardViewModel : ObservableObject
         try
         {
             var createdRecord = jobCardRegistryService.SaveCreatedJobCard(
-                new JobCardRegistryService.SaveJobCardRequest(
+                BuildSaveJobCardRequest(
                     workflowStatus,
                     statusNotes,
                     createdUnit.UnitId,
@@ -621,37 +681,7 @@ public partial class WialonJobCardViewModel : ObservableObject
                     CreatorName,
                     SelectedHardwareType?.HardwareTypeId,
                     SelectedHardwareType?.DisplayText,
-                    GetResolvedUnitName(),
-                    UniqueId,
-                    Iccid,
-                    resolvedPhoneNumber,
-                    Brand,
-                    Model,
-                    Year,
-                    Colour,
-                    VehicleClass,
-                    VehicleType,
-                    RegistrationPlate,
-                    Vin,
-                    Client,
-                    Contact1,
-                    Contact2,
-                    MakeAndModel,
-                    RegistrationFleet,
-                    UseCustomBillingSystem,
-                    CustomBillingSystemName,
-                    SystemPriceExVat,
-                    HasPanicButton,
-                    PanicButtonPriceExVat,
-                    HasEarlyWarningSystem,
-                    EarlyWarningSystemPriceExVat,
-                    BleSensorQuantity,
-                    BleSensorUnitPriceExVat,
-                    HasLvCanAdaptor,
-                    LvCanAdaptorPriceExVat,
-                    OtherHardwareDescription,
-                    OtherHardwarePriceExVat,
-                    BillingNotes));
+                    resolvedPhoneNumber));
 
             CreatedJobCardNumber = createdRecord.JobCardNumber;
             LoadJobCardRegister();
@@ -661,6 +691,64 @@ public partial class WialonJobCardViewModel : ObservableObject
         {
             return null;
         }
+    }
+
+    private JobCardRegistryService.SaveJobCardRequest BuildSaveJobCardRequest(
+        string workflowStatus,
+        string? statusNotes,
+        long? wialonUnitId,
+        string? wialonUnitName,
+        long? wialonAccountId,
+        string? wialonAccountName,
+        long? wialonCreatorId,
+        string? wialonCreatorName,
+        long? wialonHardwareTypeId,
+        string? wialonHardwareTypeName,
+        string? phoneNumber)
+    {
+        return new JobCardRegistryService.SaveJobCardRequest(
+            SelectedJobCardType,
+            workflowStatus,
+            statusNotes,
+            wialonUnitId,
+            wialonUnitName,
+            wialonAccountId,
+            wialonAccountName,
+            wialonCreatorId,
+            wialonCreatorName,
+            wialonHardwareTypeId,
+            wialonHardwareTypeName,
+            GetResolvedUnitName(),
+            UniqueId,
+            Iccid,
+            phoneNumber,
+            Brand,
+            Model,
+            Year,
+            Colour,
+            VehicleClass,
+            VehicleType,
+            RegistrationPlate,
+            Vin,
+            Client,
+            Contact1,
+            Contact2,
+            MakeAndModel,
+            RegistrationFleet,
+            UseCustomBillingSystem,
+            CustomBillingSystemName,
+            SystemPriceExVat,
+            HasPanicButton,
+            PanicButtonPriceExVat,
+            HasEarlyWarningSystem,
+            EarlyWarningSystemPriceExVat,
+            BleSensorQuantity,
+            BleSensorUnitPriceExVat,
+            HasLvCanAdaptor,
+            LvCanAdaptorPriceExVat,
+            OtherHardwareDescription,
+            OtherHardwarePriceExVat,
+            BillingNotes);
     }
 
     private static string GetVehicleDisplay(string? registrationPlate, string? vin, string? jobCardName)
@@ -700,6 +788,7 @@ public partial class WialonJobCardViewModel : ObservableObject
 
             ExistingWialonUnits = new ObservableCollection<WialonUnitSummary>(units);
             ApplyExistingUnitFilter();
+            ApplySelectedAccountExistingUnitFilter();
 
             ExistingUnitsStatusMessage = units.Count == 0
                 ? "No existing Wialon units were returned."
@@ -754,8 +843,7 @@ public partial class WialonJobCardViewModel : ObservableObject
             IsBusy = true;
             StatusMessage = $"Loading the Wialon details for {SelectedExistingWialonUnit.Name}...";
 
-            var client = new WialonApiClient(ApiHost);
-            var details = await client.GetUnitDetailsAsync(currentSessionId!, SelectedExistingWialonUnit.UnitId).ConfigureAwait(true);
+            var details = await GetUnitDetailsWithRetryAsync(SelectedExistingWialonUnit.UnitId).ConfigureAwait(true);
 
             ApplyExistingUnitDetails(details);
             ExistingUnitsStatusMessage = $"Loaded details from existing unit {details.Name} ({details.UnitId}).";
@@ -807,7 +895,7 @@ public partial class WialonJobCardViewModel : ObservableObject
         try
         {
             var createdRecord = jobCardRegistryService.SaveCreatedJobCard(
-                new JobCardRegistryService.SaveJobCardRequest(
+                BuildSaveJobCardRequest(
                     JobCardWorkflowStatuses.AwaitingInstallationPhotos,
                     "Registered from an existing Wialon unit.",
                     SelectedExistingWialonUnit.UnitId,
@@ -818,37 +906,7 @@ public partial class WialonJobCardViewModel : ObservableObject
                     CreatorName,
                     SelectedExistingWialonUnit.HardwareTypeId ?? SelectedHardwareType?.HardwareTypeId,
                     NormalizeLegacyText(SelectedExistingWialonUnit.HardwareTypeName) ?? SelectedHardwareType?.DisplayText,
-                    GetResolvedUnitName(),
-                    UniqueId,
-                    Iccid,
-                    string.IsNullOrWhiteSpace(ResolvedPhoneNumber) ? SelectedExistingWialonUnit.PhoneNumber : ResolvedPhoneNumber,
-                    Brand,
-                    Model,
-                    Year,
-                    Colour,
-                    VehicleClass,
-                    VehicleType,
-                    RegistrationPlate,
-                    Vin,
-                    Client,
-                    Contact1,
-                    Contact2,
-                    MakeAndModel,
-                    RegistrationFleet,
-                    UseCustomBillingSystem,
-                    CustomBillingSystemName,
-                    SystemPriceExVat,
-                    HasPanicButton,
-                    PanicButtonPriceExVat,
-                    HasEarlyWarningSystem,
-                    EarlyWarningSystemPriceExVat,
-                    BleSensorQuantity,
-                    BleSensorUnitPriceExVat,
-                    HasLvCanAdaptor,
-                    LvCanAdaptorPriceExVat,
-                    OtherHardwareDescription,
-                    OtherHardwarePriceExVat,
-                    BillingNotes));
+                    string.IsNullOrWhiteSpace(ResolvedPhoneNumber) ? SelectedExistingWialonUnit.PhoneNumber : ResolvedPhoneNumber));
 
             CreatedJobCardNumber = createdRecord.JobCardNumber;
             CreatedUnitId = SelectedExistingWialonUnit.UnitId;
@@ -901,6 +959,169 @@ public partial class WialonJobCardViewModel : ObservableObject
         {
             SelectedExistingWialonUnit = filteredUnits.FirstOrDefault();
         }
+    }
+
+    private void ApplySelectedAccountExistingUnitFilter()
+    {
+        if (!RequiresExistingUnitSelection)
+        {
+            SelectedAccountExistingWialonUnits = [];
+            SelectedAccountExistingWialonUnit = null;
+            SelectedAccountExistingUnitsStatusMessage = "Select Transfer or Removal to work from an existing Wialon unit.";
+            return;
+        }
+
+        if (!IsWialonConnected)
+        {
+            SelectedAccountExistingWialonUnits = [];
+            SelectedAccountExistingWialonUnit = null;
+            SelectedAccountExistingUnitsStatusMessage = "Load the Wialon setup first.";
+            return;
+        }
+
+        if (SelectedAccount is null)
+        {
+            SelectedAccountExistingWialonUnits = [];
+            SelectedAccountExistingWialonUnit = null;
+            SelectedAccountExistingUnitsStatusMessage = "Select the Wialon account first.";
+            return;
+        }
+
+        if (ExistingWialonUnits.Count == 0)
+        {
+            SelectedAccountExistingWialonUnits = [];
+            SelectedAccountExistingWialonUnit = null;
+            SelectedAccountExistingUnitsStatusMessage = $"Load existing Wialon units to choose one from {SelectedAccount.AccountName}.";
+            return;
+        }
+
+        var searchText = SelectedAccountExistingUnitSearchText?.Trim() ?? string.Empty;
+        var filteredUnits = ExistingWialonUnits
+            .Where(unit => MatchesSelectedAccount(unit, SelectedAccount))
+            .Where(unit =>
+                string.IsNullOrWhiteSpace(searchText) ||
+                unit.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                unit.UnitId.ToString(CultureInfo.InvariantCulture).Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(unit.UniqueId) && unit.UniqueId.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(unit.PhoneNumber) && unit.PhoneNumber.Contains(searchText, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(unit => unit.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        SelectedAccountExistingWialonUnits = new ObservableCollection<WialonUnitSummary>(filteredUnits);
+        if (SelectedAccountExistingWialonUnit is not null &&
+            filteredUnits.All(unit => unit.UnitId != SelectedAccountExistingWialonUnit.UnitId))
+        {
+            SelectedAccountExistingWialonUnit = null;
+        }
+
+        if (filteredUnits.Count == 0)
+        {
+            SelectedAccountExistingUnitsStatusMessage = string.IsNullOrWhiteSpace(searchText)
+                ? $"No existing units were found under {SelectedAccount.AccountName}."
+                : $"No existing units matched \"{searchText}\" under {SelectedAccount.AccountName}.";
+            return;
+        }
+
+        SelectedAccountExistingUnitsStatusMessage = SelectedAccountExistingWialonUnit is null
+            ? $"{filteredUnits.Count} existing unit(s) found under {SelectedAccount.AccountName}. Select one to auto-fill the form."
+            : $"Selected {SelectedAccountExistingWialonUnit.Name}. The form is using details captured on Wialon.";
+    }
+
+    private async Task LoadSelectedAccountExistingUnitDetailsAsync(WialonUnitSummary selectedUnit)
+    {
+        try
+        {
+            IsBusy = true;
+            SelectedAccountExistingUnitsStatusMessage = $"Loading the Wialon details for {selectedUnit.Name}...";
+            StatusMessage = SelectedAccountExistingUnitsStatusMessage;
+
+            var details = await GetUnitDetailsWithRetryAsync(selectedUnit.UnitId).ConfigureAwait(true);
+            if (SelectedAccountExistingWialonUnit?.UnitId != selectedUnit.UnitId)
+            {
+                return;
+            }
+
+            ApplyExistingUnitDetails(details);
+            SelectedExistingWialonUnit = selectedUnit;
+            ExistingUnitsStatusMessage = $"Loaded details from existing unit {details.Name} ({details.UnitId}).";
+            SelectedAccountExistingUnitsStatusMessage = $"Loaded details from {details.Name} ({details.UnitId}).";
+            StatusMessage = SelectedAccountExistingUnitsStatusMessage;
+        }
+        catch (WialonApiException ex)
+        {
+            SelectedAccountExistingUnitsStatusMessage = ex.Message;
+            StatusMessage = ex.Message;
+        }
+        catch (HttpRequestException ex)
+        {
+            SelectedAccountExistingUnitsStatusMessage = $"Unable to reach Wialon: {ex.Message}";
+            StatusMessage = SelectedAccountExistingUnitsStatusMessage;
+        }
+        catch (Exception ex)
+        {
+            SelectedAccountExistingUnitsStatusMessage = $"Unexpected error while loading unit details: {ex.Message}";
+            StatusMessage = SelectedAccountExistingUnitsStatusMessage;
+        }
+        finally
+        {
+            IsBusy = false;
+            LoadExistingUnitsCommand.NotifyCanExecuteChanged();
+            ImportExistingUnitDetailsCommand.NotifyCanExecuteChanged();
+            RegisterExistingUnitJobCardCommand.NotifyCanExecuteChanged();
+            CreateJobCardCommand.NotifyCanExecuteChanged();
+            LoadWialonSetupCommand.NotifyCanExecuteChanged();
+            ApplySelectedAccountExistingUnitFilter();
+        }
+    }
+
+    private async Task<WialonUnitDetails> GetUnitDetailsWithRetryAsync(long unitId)
+    {
+        var client = new WialonApiClient(ApiHost);
+        if (!string.IsNullOrWhiteSpace(currentSessionId))
+        {
+            try
+            {
+                return await client.GetUnitDetailsAsync(currentSessionId, unitId).ConfigureAwait(true);
+            }
+            catch (WialonApiException ex) when (ShouldRefreshSession(ex))
+            {
+                currentSessionId = null;
+            }
+        }
+
+        var session = await ReconnectToWialonAsync(client).ConfigureAwait(true);
+        return await client.GetUnitDetailsAsync(session.SessionId, unitId).ConfigureAwait(true);
+    }
+
+    private async Task<WialonSession> ReconnectToWialonAsync(WialonApiClient client)
+    {
+        if (string.IsNullOrWhiteSpace(AccessToken))
+        {
+            throw new WialonApiException("The saved Wialon session expired and there is no access token available to reconnect.");
+        }
+
+        var session = await client.LoginAsync(AccessToken.Trim()).ConfigureAwait(true);
+        currentSessionId = session.SessionId;
+        creatorId = session.CreatorId;
+        CreatorName = session.CreatorName;
+        OnPropertyChanged(nameof(CurrentCreatorDisplay));
+        return session;
+    }
+
+    private static bool ShouldRefreshSession(WialonApiException ex)
+    {
+        return ex.ErrorCode is 1 or 6 or 1011;
+    }
+
+    private static bool MatchesSelectedAccount(WialonUnitSummary unit, WialonAccountOption selectedAccount)
+    {
+        if (unit.AccountId.HasValue && unit.AccountId.Value == selectedAccount.AccountId)
+        {
+            return true;
+        }
+
+        return !string.IsNullOrWhiteSpace(unit.AccountLabel) &&
+            string.Equals(unit.AccountLabel.Trim(), selectedAccount.AccountName.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 
     private void ApplyExistingUnitDetails(WialonUnitDetails details)
@@ -983,15 +1204,21 @@ public partial class WialonJobCardViewModel : ObservableObject
             return;
         }
 
-        if (SelectedHardwareType is null)
-        {
-            StatusMessage = "Select a hardware type first.";
-            return;
-        }
-
         if (SelectedAccount is null)
         {
             StatusMessage = "Select the Wialon account to create the unit under.";
+            return;
+        }
+
+        if (RequiresExistingUnitSelection)
+        {
+            await CreateExistingUnitJobCardAsync().ConfigureAwait(true);
+            return;
+        }
+
+        if (SelectedHardwareType is null)
+        {
+            StatusMessage = "Select a hardware type first.";
             return;
         }
 
@@ -1125,6 +1352,61 @@ public partial class WialonJobCardViewModel : ObservableObject
         }
     }
 
+    private Task CreateExistingUnitJobCardAsync()
+    {
+        if (SelectedAccountExistingWialonUnit is null)
+        {
+            StatusMessage = $"Select an existing Wialon unit under {SelectedAccount?.AccountName ?? "the selected account"} first.";
+            SelectedAccountExistingUnitsStatusMessage = StatusMessage;
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            IsBusy = true;
+            CreatedJobCardNumber = null;
+
+            var selectedUnit = SelectedAccountExistingWialonUnit;
+            var createdRecord = jobCardRegistryService.SaveCreatedJobCard(
+                BuildSaveJobCardRequest(
+                    JobCardWorkflowStatuses.Created,
+                    $"Created from existing Wialon unit for {SelectedJobCardType.ToLowerInvariant()} workflow.",
+                    selectedUnit.UnitId,
+                    string.IsNullOrWhiteSpace(CreatedUnitName) ? selectedUnit.Name : CreatedUnitName,
+                    selectedUnit.AccountId ?? SelectedAccount?.AccountId,
+                    NormalizeLegacyText(selectedUnit.AccountLabel) ?? SelectedAccount?.AccountName,
+                    creatorId,
+                    CreatorName,
+                    selectedUnit.HardwareTypeId ?? SelectedHardwareType?.HardwareTypeId,
+                    NormalizeLegacyText(selectedUnit.HardwareTypeName) ?? SelectedHardwareType?.DisplayText,
+                    string.IsNullOrWhiteSpace(ResolvedPhoneNumber) ? selectedUnit.PhoneNumber : ResolvedPhoneNumber));
+
+            CreatedJobCardNumber = createdRecord.JobCardNumber;
+            CreatedUnitId = selectedUnit.UnitId;
+            CreatedUnitName = string.IsNullOrWhiteSpace(CreatedUnitName) ? selectedUnit.Name : CreatedUnitName;
+            LoadJobCardRegister();
+
+            StatusMessage = $"Recorded {SelectedJobCardType.ToLowerInvariant()} job card {createdRecord.JobCardNumber} for existing Wialon unit {selectedUnit.Name} ({selectedUnit.UnitId}).";
+            SelectedAccountExistingUnitsStatusMessage = $"Recorded {createdRecord.JobCardNumber} from {selectedUnit.Name}.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"I couldn't record that {SelectedJobCardType.ToLowerInvariant()} job card: {ex.Message}";
+            SelectedAccountExistingUnitsStatusMessage = StatusMessage;
+        }
+        finally
+        {
+            IsBusy = false;
+            CreateJobCardCommand.NotifyCanExecuteChanged();
+            LoadWialonSetupCommand.NotifyCanExecuteChanged();
+            LoadExistingUnitsCommand.NotifyCanExecuteChanged();
+            ImportExistingUnitDetailsCommand.NotifyCanExecuteChanged();
+            RegisterExistingUnitJobCardCommand.NotifyCanExecuteChanged();
+        }
+
+        return Task.CompletedTask;
+    }
+
     private bool CanLoadWialonSetup()
     {
         return !IsBusy && !string.IsNullOrWhiteSpace(AccessToken);
@@ -1132,7 +1414,7 @@ public partial class WialonJobCardViewModel : ObservableObject
 
     private bool CanCreateJobCard()
     {
-        return !IsBusy;
+        return !IsBusy && (!RequiresExistingUnitSelection || SelectedAccountExistingWialonUnit is not null);
     }
 
     private async Task ApplyProfileFieldsAsync(

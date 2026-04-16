@@ -11,6 +11,10 @@
         MinWidth="1160"
         WindowStartupLocation="CenterOwner">
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -87,13 +91,84 @@
                               SelectedItem="{Binding SelectedAccount}"
                               DisplayMemberPath="DisplayText"
                               Height="38" />
+
+                    <Border Margin="0,14,0,0"
+                            Background="{StaticResource AccentSoftBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="14"
+                            Padding="12"
+                            Visibility="{Binding RequiresExistingUnitSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock Text="Existing Unit On Selected Account"
+                                       Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="Load the current units on the selected account, then choose one to auto-fill the form from Wialon."
+                                       Margin="0,6,0,10"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       TextWrapping="Wrap" />
+
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Load Existing Units"
+                                        Width="150"
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        Command="{Binding LoadExistingUnitsCommand}" />
+                                <Border Margin="12,0,0,0"
+                                        Background="{StaticResource CardBackgroundBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="10,6"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding SelectedAccountExistingWialonUnits.Count, StringFormat={}{0} matching unit(s)}"
+                                               Foreground="{StaticResource SecondaryTextBrush}" />
+                                </Border>
+                            </StackPanel>
+
+                            <TextBlock Text="Search Existing Unit"
+                                       Margin="0,12,0,6"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding SelectedAccountExistingUnitSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,10" />
+
+                            <TextBlock Text="Select Existing Unit"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox ItemsSource="{Binding SelectedAccountExistingWialonUnits}"
+                                      SelectedItem="{Binding SelectedAccountExistingWialonUnit}"
+                                      MinHeight="40"
+                                      Margin="0,0,0,10">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name, Mode=OneWay}"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Foreground="{StaticResource SecondaryTextBrush}"
+                                                       FontSize="11.5">
+                                                <TextBlock.Text>
+                                                    <MultiBinding Mode="OneWay"
+                                                                  StringFormat="Unit ID: {0}  |  Unique ID: {1}">
+                                                        <Binding Path="UnitId" Mode="OneWay" />
+                                                        <Binding Path="UniqueIdDisplay" Mode="OneWay" />
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <TextBlock Text="{Binding SelectedAccountExistingUnitsStatusMessage}"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
 
             <Border Grid.Column="2"
                     Style="{StaticResource CardBorderStyle}"
                     Padding="14"
-                    Background="{StaticResource AccentSoftBrush}">
+                    Background="{StaticResource AccentSoftBrush}"
+                    VerticalAlignment="Top">
                 <StackPanel>
                     <TextBlock Text="Flickswitch Lookup"
                                Style="{StaticResource SectionTitleStyle}" />
@@ -101,7 +176,7 @@
                                Margin="0,6,0,8"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
-                    <TextBlock Text="Create Job Card still needs a saved Flickswitch API key. If the key is missing, the status bar will tell you before anything is created."
+                    <TextBlock Text="Fresh installations still use the saved Flickswitch API key to look up the MSISDN. Transfer and Removal can reuse the selected unit details instead."
                                Margin="0,0,0,8"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                FontSize="12"
@@ -148,7 +223,7 @@
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="Wialon Unit Details"
                                    Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="These fields will be written into Wialon when the unit is created."
+                        <TextBlock Text="{Binding WialonUnitDetailsHelpText}"
                                    Margin="0,6,0,14"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    TextWrapping="Wrap" />
@@ -238,6 +313,18 @@
                                  Margin="0,0,0,6"
                                  IsReadOnly="True" />
                         <TextBlock Text="Auto-filled from the selected account."
+                                   Margin="0,0,0,12"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap" />
+
+                        <TextBlock Text="Job Card Type"
+                                   Style="{StaticResource FieldLabelStyle}" />
+                        <ComboBox ItemsSource="{Binding JobCardTypes}"
+                                  SelectedItem="{Binding SelectedJobCardType}"
+                                  Margin="0,0,0,6"
+                                  MinHeight="40" />
+                        <TextBlock Text="Use Transfer when a unit moves between accounts or between different vehicles on the same account."
                                    Margin="0,0,0,12"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    FontSize="12"
@@ -434,7 +521,7 @@
                             Width="96"
                             Margin="0,0,12,0"
                             Click="OnCloseWindow" />
-                    <Button Content="Create Job Card"
+                    <Button Content="{Binding CreateJobCardButtonText}"
                             Width="150"
                             Style="{StaticResource PrimaryButtonStyle}"
                             Command="{Binding CreateJobCardCommand}" />

@@ -32,6 +32,9 @@ internal sealed partial class JobCardDetailsViewModel : ObservableObject
     private string workflowStatus = string.Empty;
 
     [ObservableProperty]
+    private string jobCardType = string.Empty;
+
+    [ObservableProperty]
     private string createdAtDisplay = string.Empty;
 
     [ObservableProperty]
@@ -170,6 +173,7 @@ internal sealed partial class JobCardDetailsViewModel : ObservableObject
             ?? throw new InvalidOperationException("I couldn't find that job card record.");
 
         JobCardNumber = currentRecord.JobCardNumber;
+        JobCardType = currentRecord.JobCardType;
         WorkflowStatus = currentRecord.WorkflowStatus;
         CreatedAtDisplay = currentRecord.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
         Client = currentRecord.Client;

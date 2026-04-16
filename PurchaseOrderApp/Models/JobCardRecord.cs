@@ -11,6 +11,20 @@ public static class JobCardWorkflowStatuses
     public const string InstallationCompleted = "Installation Completed";
 }
 
+public static class JobCardTypes
+{
+    public const string Installation = "Installation";
+    public const string Removal = "Removal";
+    public const string Transfer = "Transfer";
+
+    public static readonly IReadOnlyList<string> All =
+    [
+        Installation,
+        Removal,
+        Transfer
+    ];
+}
+
 public class JobCardRecord
 {
     public int JobCardRecordId { get; set; }
@@ -24,6 +38,9 @@ public class JobCardRecord
 
     [Required]
     public string WorkflowStatus { get; set; } = JobCardWorkflowStatuses.Created;
+
+    [Required]
+    public string JobCardType { get; set; } = JobCardTypes.Installation;
 
     public string? StatusNotes { get; set; }
 

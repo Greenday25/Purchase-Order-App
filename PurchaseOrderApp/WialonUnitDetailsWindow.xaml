@@ -15,6 +15,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -54,6 +55,11 @@
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             VerticalAlignment="Top">
+                    <Button Content="Export Certificate"
+                            Width="160"
+                            Margin="0,0,12,0"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding ExportTrackingCertificateCommand}" />
                     <Button Content="Close"
                             Width="120"
                             Click="OnCloseWindow" />
@@ -122,6 +128,105 @@
         </UniformGrid>
 
         <Border Grid.Row="2"
+                Margin="0,0,0,16"
+                Style="{StaticResource CardBorderStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Tracking Certificate"
+                               Style="{StaticResource SectionTitleStyle}" />
+                    <TextBlock Text="{Binding CertificateStatusMessage}"
+                               Margin="0,8,0,14"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+
+                    <UniformGrid Columns="2">
+                        <StackPanel Margin="0,0,18,0">
+                            <TextBlock Text="Customer/Client"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding CustomerClientDisplay}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Text="Registration Number"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,14,0,6" />
+                            <TextBlock Text="{Binding RegistrationNumberDisplay}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Text="VIN"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,14,0,6" />
+                            <TextBlock Text="{Binding CertificateVinDisplay}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Text="Vehicle Type"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,14,0,6" />
+                            <TextBlock Text="{Binding CertificateVehicleTypeDisplay}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Margin="18,0,0,0">
+                            <TextBlock Text="Colour"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Text="{Binding CertificateColourDisplay}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Text="Type of System"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,14,0,6" />
+                            <TextBlock Text="{Binding TypeOfSystemDisplay}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Text="VESA/SAIA Number"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,14,0,6" />
+                            <TextBlock Text="{Binding VesaSaiaNumberDisplay}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Text="Installation Date"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,14,0,6" />
+                            <TextBlock Text="{Binding InstallationDateDisplay}"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </UniformGrid>
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Background="{StaticResource AccentSoftBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="14,12"
+                        Margin="18,0,0,0"
+                        VerticalAlignment="Top">
+                    <StackPanel Width="220">
+                        <TextBlock Text="PDF Export"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentDarkBrush}" />
+                        <TextBlock Text="The certificate is generated from the current Wialon unit and saved to Documents\Tracking Certificates."
+                                   Margin="0,8,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="3"
                 Style="{StaticResource CardBorderStyle}"
                 Padding="0">
             <Grid>
@@ -181,7 +286,7 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 Margin="0,18,0,0"
                 Style="{StaticResource CardBorderStyle}">
             <StackPanel Orientation="Horizontal"

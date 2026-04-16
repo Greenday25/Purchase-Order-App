@@ -1,6 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using PurchaseOrderApp.Models;
 using PurchaseOrderApp.Services;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 
@@ -11,6 +14,8 @@ public partial class WialonUnitDetailsViewModel : ObservableObject
     private const long ViewConnectivitySettingsRight = 0x0004000000L;
     private readonly string apiHost;
     private readonly string accessToken;
+    private readonly TrackingCertificateDataBuilder trackingCertificateDataBuilder = new();
+    private readonly TrackingCertificatePdfService trackingCertificatePdfService = new();
 
     public WialonUnitDetailsViewModel(
         string apiHost,
@@ -31,6 +36,7 @@ public partial class WialonUnitDetailsViewModel : ObservableObject
         HardwareTypeId = unit.HardwareTypeId;
         HardwareTypeName = unit.HardwareTypeName;
         LastMessageAt = unit.LastMessageAt;
+        TrackingCertificate = null;
         Latitude = unit.Latitude;
         Longitude = unit.Longitude;
         StatusMessage = "Loading Wialon profile data...";
@@ -112,7 +118,21 @@ public partial class WialonUnitDetailsViewModel : ObservableObject
     private string statusMessage = string.Empty;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExportTrackingCertificateCommand))]
     private bool isBusy;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanExportTrackingCertificate))]
+    [NotifyPropertyChangedFor(nameof(CustomerClientDisplay))]
+    [NotifyPropertyChangedFor(nameof(RegistrationNumberDisplay))]
+    [NotifyPropertyChangedFor(nameof(CertificateVinDisplay))]
+    [NotifyPropertyChangedFor(nameof(CertificateVehicleTypeDisplay))]
+    [NotifyPropertyChangedFor(nameof(CertificateColourDisplay))]
+    [NotifyPropertyChangedFor(nameof(TypeOfSystemDisplay))]
+    [NotifyPropertyChangedFor(nameof(VesaSaiaNumberDisplay))]
+    [NotifyPropertyChangedFor(nameof(InstallationDateDisplay))]
+    [NotifyPropertyChangedFor(nameof(CertificateStatusMessage))]
+    private TrackingCertificateData? trackingCertificate;
 
     public string WindowTitle =>
         string.IsNullOrWhiteSpace(Name)
@@ -153,6 +173,29 @@ public partial class WialonUnitDetailsViewModel : ObservableObject
 
     public bool CanViewConnectivitySettings => (AccessRights & ViewConnectivitySettingsRight) != 0;
 
+    public bool CanExportTrackingCertificate => TrackingCertificate is not null && !IsBusy;
+
+    public string CustomerClientDisplay => FormatCertificateValue(TrackingCertificate?.CustomerClient);
+
+    public string RegistrationNumberDisplay => FormatCertificateValue(TrackingCertificate?.RegistrationNumber);
+
+    public string CertificateVinDisplay => FormatCertificateValue(TrackingCertificate?.Vin);
+
+    public string CertificateVehicleTypeDisplay => FormatCertificateValue(TrackingCertificate?.VehicleType);
+
+    public string CertificateColourDisplay => FormatCertificateValue(TrackingCertificate?.Colour);
+
+    public string TypeOfSystemDisplay => FormatCertificateValue(TrackingCertificate?.TypeOfSystem);
+
+    public string VesaSaiaNumberDisplay => FormatCertificateValue(TrackingCertificate?.VesaSaiaNumber);
+
+    public string InstallationDateDisplay => FormatCertificateValue(TrackingCertificate?.InstallationDate);
+
+    public string CertificateStatusMessage =>
+        TrackingCertificate is null
+            ? "Load the unit details to prepare the tracking certificate."
+            : "Certificate values are resolved from the selected Wialon unit. Any missing field remains marked as Pending until that value exists on Wialon.";
+
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
         if (IsBusy)
@@ -186,6 +229,7 @@ public partial class WialonUnitDetailsViewModel : ObservableObject
                 if (!string.IsNullOrWhiteSpace(resolvedHardwareTypeName))
                 {
                     HardwareTypeName = resolvedHardwareTypeName;
+                    TrackingCertificate = BuildTrackingCertificate(details);
                 }
             }
 
@@ -200,6 +244,7 @@ public partial class WialonUnitDetailsViewModel : ObservableObject
                 : "This token may not have View connectivity settings rights, so Wialon can hide the device type, phone, and unique ID.";
 
             StatusMessage = $"{profileMessage} {connectivityMessage}";
+            ExportTrackingCertificateCommand.NotifyCanExecuteChanged();
         }
         catch (WialonApiException ex)
         {
@@ -218,6 +263,31 @@ public partial class WialonUnitDetailsViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanExportTrackingCertificate))]
+    private void ExportTrackingCertificate()
+    {
+        if (TrackingCertificate is null)
+        {
+            StatusMessage = "Load the unit details before exporting the tracking certificate.";
+            return;
+        }
+
+        try
+        {
+            var outputPath = trackingCertificatePdfService.ExportCertificate(TrackingCertificate);
+            StatusMessage = $"Tracking certificate exported to {outputPath}";
+
+            Process.Start(new ProcessStartInfo(outputPath)
+            {
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Unable to export the tracking certificate: {ex.Message}";
         }
     }
 
@@ -289,6 +359,7 @@ public partial class WialonUnitDetailsViewModel : ObservableObject
         {
             AccountLabel = details.AccountLabel;
         }
+
         Fields = new ObservableCollection<WialonUnitDetailField>(
             details.Fields.Select(field => new WialonUnitDetailField
             {
@@ -297,5 +368,18 @@ public partial class WialonUnitDetailsViewModel : ObservableObject
                 Name = field.Name,
                 Value = field.Value
             }));
+
+        TrackingCertificate = BuildTrackingCertificate(details);
     }
+
+    private TrackingCertificateData BuildTrackingCertificate(WialonUnitDetails details)
+    {
+        return trackingCertificateDataBuilder.Build(details, HardwareTypeName, AccountLabel);
+    }
+
+    private static string FormatCertificateValue(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "Pending" : value.Trim();
+    }
+
 }
