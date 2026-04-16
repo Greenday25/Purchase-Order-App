@@ -13,3 +13,7 @@ exception.log
 # Local SQLite database files
 purchaseorders.db*
 PurchaseOrderApp/purchaseorders.db*
+
+# Local build and template extraction artifacts
+*.lscache
+_template_extract/
