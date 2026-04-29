@@ -13,6 +13,12 @@ internal sealed class JobCardRegistryService
 
     internal sealed record JobCardNumberInfo(int SequenceNumber, string JobCardNumber);
 
+    internal sealed record DuplicateJobCardMatch(
+        string FieldName,
+        string FieldValue,
+        string JobCardNumber,
+        DateTime CreatedAt);
+
     internal sealed record SaveJobCardRequest(
         string JobCardType,
         string WorkflowStatus,
@@ -110,10 +116,57 @@ internal sealed class JobCardRegistryService
             .FirstOrDefault(item => item.JobCardRecordId == jobCardRecordId);
     }
 
+    internal DuplicateJobCardMatch? FindDuplicateJobCard(string? registrationPlate, string? iccid, string? uniqueId)
+    {
+        using var db = new PurchaseOrderContext();
+        EnsureSchema(db);
+
+        var normalizedRegistration = NormalizeIdentifier(registrationPlate);
+        var normalizedIccid = NormalizeIdentifier(iccid);
+        var normalizedUniqueId = NormalizeIdentifier(uniqueId);
+
+        if (string.IsNullOrWhiteSpace(normalizedRegistration) &&
+            string.IsNullOrWhiteSpace(normalizedIccid) &&
+            string.IsNullOrWhiteSpace(normalizedUniqueId))
+        {
+            return null;
+        }
+
+        var records = db.JobCards
+            .AsNoTracking()
+            .OrderByDescending(item => item.SequenceNumber)
+            .ToList();
+
+        foreach (var record in records)
+        {
+            if (!string.IsNullOrWhiteSpace(normalizedRegistration) &&
+                string.Equals(NormalizeIdentifier(record.RegistrationPlate), normalizedRegistration, StringComparison.OrdinalIgnoreCase))
+            {
+                return new DuplicateJobCardMatch("registration", record.RegistrationPlate, record.JobCardNumber, record.CreatedAt);
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedIccid) &&
+                string.Equals(NormalizeIdentifier(record.Iccid), normalizedIccid, StringComparison.OrdinalIgnoreCase))
+            {
+                return new DuplicateJobCardMatch("ICCID", record.Iccid, record.JobCardNumber, record.CreatedAt);
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedUniqueId) &&
+                string.Equals(NormalizeIdentifier(record.UniqueId), normalizedUniqueId, StringComparison.OrdinalIgnoreCase))
+            {
+                return new DuplicateJobCardMatch("IMEI", record.UniqueId, record.JobCardNumber, record.CreatedAt);
+            }
+        }
+
+        return null;
+    }
+
     internal JobCardRecord SaveCreatedJobCard(SaveJobCardRequest request)
     {
         using var db = new PurchaseOrderContext();
         EnsureSchema(db);
+
+        ThrowIfDuplicateJobCardExists(db, request.RegistrationPlate, request.Iccid, request.UniqueId);
 
         var nextSequence = GetNextSequenceNumber(db);
         var record = new JobCardRecord
@@ -211,6 +264,19 @@ internal sealed class JobCardRegistryService
             ? JobCardWorkflowStatuses.InstallationCompleted
             : JobCardWorkflowStatuses.AwaitingInstallationPhotos;
 
+        db.SaveChanges();
+        return record;
+    }
+
+    internal JobCardRecord DeleteJobCardEntry(int jobCardRecordId)
+    {
+        using var db = new PurchaseOrderContext();
+        EnsureSchema(db);
+
+        var record = db.JobCards.FirstOrDefault(item => item.JobCardRecordId == jobCardRecordId)
+            ?? throw new InvalidOperationException("I couldn't find that job card record.");
+
+        db.JobCards.Remove(record);
         db.SaveChanges();
         return record;
     }
@@ -392,5 +458,69 @@ internal sealed class JobCardRegistryService
     {
         var trimmed = value?.Trim();
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private static void ThrowIfDuplicateJobCardExists(
+        PurchaseOrderContext db,
+        string? registrationPlate,
+        string? iccid,
+        string? uniqueId)
+    {
+        var normalizedRegistration = NormalizeIdentifier(registrationPlate);
+        var normalizedIccid = NormalizeIdentifier(iccid);
+        var normalizedUniqueId = NormalizeIdentifier(uniqueId);
+
+        if (string.IsNullOrWhiteSpace(normalizedRegistration) &&
+            string.IsNullOrWhiteSpace(normalizedIccid) &&
+            string.IsNullOrWhiteSpace(normalizedUniqueId))
+        {
+            return;
+        }
+
+        var records = db.JobCards
+            .AsNoTracking()
+            .OrderByDescending(item => item.SequenceNumber)
+            .ToList();
+
+        foreach (var record in records)
+        {
+            if (!string.IsNullOrWhiteSpace(normalizedRegistration) &&
+                string.Equals(NormalizeIdentifier(record.RegistrationPlate), normalizedRegistration, StringComparison.OrdinalIgnoreCase))
+            {
+                throw BuildDuplicateException("registration", record.RegistrationPlate, record.JobCardNumber);
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedIccid) &&
+                string.Equals(NormalizeIdentifier(record.Iccid), normalizedIccid, StringComparison.OrdinalIgnoreCase))
+            {
+                throw BuildDuplicateException("ICCID", record.Iccid, record.JobCardNumber);
+            }
+
+            if (!string.IsNullOrWhiteSpace(normalizedUniqueId) &&
+                string.Equals(NormalizeIdentifier(record.UniqueId), normalizedUniqueId, StringComparison.OrdinalIgnoreCase))
+            {
+                throw BuildDuplicateException("IMEI", record.UniqueId, record.JobCardNumber);
+            }
+        }
+    }
+
+    private static InvalidOperationException BuildDuplicateException(string fieldName, string fieldValue, string jobCardNumber)
+    {
+        return new InvalidOperationException(
+            $"A job card already exists with this {fieldName} ({fieldValue}) on {jobCardNumber}. No duplicate registrations, ICCID numbers, or IMEI numbers are allowed.");
+    }
+
+    private static string NormalizeIdentifier(string? value)
+    {
+        var normalized = NormalizeText(value);
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return string.Empty;
+        }
+
+        return new string(normalized
+            .Where(char.IsLetterOrDigit)
+            .Select(char.ToUpperInvariant)
+            .ToArray());
     }
 }

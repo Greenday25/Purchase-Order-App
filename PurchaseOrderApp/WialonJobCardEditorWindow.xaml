@@ -6,24 +6,41 @@
         mc:Ignorable="d"
         Title="New Job Card"
         Height="920"
-        Width="1320"
-        MinHeight="820"
-        MinWidth="1160"
-        WindowStartupLocation="CenterOwner">
+        Width="1420"
+        MinHeight="760"
+        MinWidth="1080"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style x:Key="TabHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="10,6" />
+        </Style>
+
+        <Style x:Key="CompactHelpTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="FieldTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
     </Window.Resources>
 
-    <Grid Margin="24">
+    <Grid Margin="18">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Style="{StaticResource HeroCardStyle}">
+        <Border Style="{StaticResource HeroCardStyle}"
+                Padding="18">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -32,468 +49,624 @@
 
                 <StackPanel>
                     <TextBlock Text="NEW JOB CARD"
-                               FontSize="28"
+                               FontSize="26"
                                FontWeight="Bold" />
-                    <TextBlock Text="Capture the Wialon setup, vehicle details, and job card fields here, then save the result back into the main register."
-                               Margin="0,8,0,0"
-                               FontSize="14"
+                    <TextBlock Text="Capture setup, vehicle details, job-card fields, and pricing on separate pages so each section has room to breathe."
+                               Margin="0,6,0,0"
+                               FontSize="13"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
                 </StackPanel>
 
                 <Button Grid.Column="1"
-                        Width="110"
+                        Width="104"
                         Content="Close"
                         Click="OnCloseWindow" />
             </Grid>
         </Border>
 
-        <Grid Grid.Row="1"
-              Margin="0,16,0,16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="18" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0"
-                    Style="{StaticResource CardBorderStyle}"
-                    Padding="14">
-                <StackPanel>
-                    <TextBlock Text="Wialon Account"
-                               Style="{StaticResource SectionTitleStyle}" />
-                    <TextBlock Text="Manage the Wialon host and access token from the Home screen. This editor uses the saved settings automatically."
-                               Margin="0,6,0,10"
-                               Foreground="{StaticResource SecondaryTextBrush}"
-                               TextWrapping="Wrap" />
-
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="Load Wialon Setup"
-                                Width="160"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Command="{Binding LoadWialonSetupCommand}" />
-                        <Border Margin="14,0,0,0"
-                                Background="{StaticResource CardTintBrush}"
-                                BorderBrush="{StaticResource BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="12"
-                                Padding="10,6"
-                                VerticalAlignment="Center">
-                            <TextBlock Text="{Binding HardwareTypes.Count, StringFormat={}{0} hardware types loaded}"
-                                       Foreground="{StaticResource SecondaryTextBrush}" />
-                        </Border>
-                    </StackPanel>
-
-                    <TextBlock Text="Create Under Account"
-                               Margin="0,12,0,6"
-                               Style="{StaticResource FieldLabelStyle}" />
-                    <ComboBox ItemsSource="{Binding AccountOptions}"
-                              SelectedItem="{Binding SelectedAccount}"
-                              DisplayMemberPath="DisplayText"
-                              Height="38" />
-
-                    <Border Margin="0,14,0,0"
-                            Background="{StaticResource AccentSoftBrush}"
-                            BorderBrush="{StaticResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="14"
-                            Padding="12"
-                            Visibility="{Binding RequiresExistingUnitSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <StackPanel>
-                            <TextBlock Text="Existing Unit On Selected Account"
-                                       Style="{StaticResource SectionTitleStyle}" />
-                            <TextBlock Text="Load the current units on the selected account, then choose one to auto-fill the form from Wialon."
-                                       Margin="0,6,0,10"
-                                       Foreground="{StaticResource SecondaryTextBrush}"
-                                       TextWrapping="Wrap" />
-
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="Load Existing Units"
-                                        Width="150"
-                                        Style="{StaticResource PrimaryButtonStyle}"
-                                        Command="{Binding LoadExistingUnitsCommand}" />
-                                <Border Margin="12,0,0,0"
-                                        Background="{StaticResource CardBackgroundBrush}"
-                                        BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="12"
-                                        Padding="10,6"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding SelectedAccountExistingWialonUnits.Count, StringFormat={}{0} matching unit(s)}"
-                                               Foreground="{StaticResource SecondaryTextBrush}" />
-                                </Border>
-                            </StackPanel>
-
-                            <TextBlock Text="Search Existing Unit"
-                                       Margin="0,12,0,6"
-                                       Style="{StaticResource FieldLabelStyle}" />
-                            <TextBox Text="{Binding SelectedAccountExistingUnitSearchText, UpdateSourceTrigger=PropertyChanged}"
-                                     Margin="0,0,0,10" />
-
-                            <TextBlock Text="Select Existing Unit"
-                                       Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox ItemsSource="{Binding SelectedAccountExistingWialonUnits}"
-                                      SelectedItem="{Binding SelectedAccountExistingWialonUnit}"
-                                      MinHeight="40"
-                                      Margin="0,0,0,10">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Name, Mode=OneWay}"
-                                                       FontWeight="SemiBold" />
-                                            <TextBlock Foreground="{StaticResource SecondaryTextBrush}"
-                                                       FontSize="11.5">
-                                                <TextBlock.Text>
-                                                    <MultiBinding Mode="OneWay"
-                                                                  StringFormat="Unit ID: {0}  |  Unique ID: {1}">
-                                                        <Binding Path="UnitId" Mode="OneWay" />
-                                                        <Binding Path="UniqueIdDisplay" Mode="OneWay" />
-                                                    </MultiBinding>
-                                                </TextBlock.Text>
-                                            </TextBlock>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-
-                            <TextBlock Text="{Binding SelectedAccountExistingUnitsStatusMessage}"
-                                       Foreground="{StaticResource SecondaryTextBrush}"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Column="2"
-                    Style="{StaticResource CardBorderStyle}"
-                    Padding="14"
-                    Background="{StaticResource AccentSoftBrush}"
-                    VerticalAlignment="Top">
-                <StackPanel>
-                    <TextBlock Text="Flickswitch Lookup"
-                               Style="{StaticResource SectionTitleStyle}" />
-                    <TextBlock Text="Use the ICCID to fetch the MSISDN before the unit is created. The Flickswitch API key is managed from the Home screen."
-                               Margin="0,6,0,8"
-                               Foreground="{StaticResource SecondaryTextBrush}"
-                               TextWrapping="Wrap" />
-                    <TextBlock Text="Fresh installations still use the saved Flickswitch API key to look up the MSISDN. Transfer and Removal can reuse the selected unit details instead."
-                               Margin="0,0,0,8"
-                               Foreground="{StaticResource SecondaryTextBrush}"
-                               FontSize="12"
-                               TextWrapping="Wrap" />
-
-                    <TextBlock Text="ICCID"
-                               Margin="0,10,0,6"
-                               Style="{StaticResource FieldLabelStyle}" />
-                    <TextBox Text="{Binding Iccid, UpdateSourceTrigger=PropertyChanged}"
-                             Margin="0,0,0,10" />
-
-                    <Border Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="{StaticResource BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="12"
-                            Padding="10,8">
-                        <StackPanel>
-                            <TextBlock Text="Derived Phone"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource SecondaryTextBrush}" />
-                            <TextBlock Text="{Binding ResolvedPhoneDisplay}"
-                                       Margin="0,6,0,0"
-                                       FontWeight="Bold"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Border>
-        </Grid>
-
-        <Border Grid.Row="2"
+        <Border Grid.Row="1"
+                Margin="0,14,0,0"
                 Style="{StaticResource CardBorderStyle}"
                 Padding="0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
-                <Grid Margin="20,18,20,18">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="24" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+            <TabControl Margin="12">
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock Text="Setup" Style="{StaticResource TabHeaderTextStyle}" />
+                    </TabItem.Header>
 
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="Wialon Unit Details"
-                                   Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="{Binding WialonUnitDetailsHelpText}"
-                                   Margin="0,6,0,14"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   TextWrapping="Wrap" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <Grid Margin="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Unit Name"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding JobCardName, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,6"
-                                 IsReadOnly="True" />
-                        <TextBlock Text="Uses Registration Plate first, otherwise VIN."
-                                   Margin="0,0,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
+                            <Border Grid.Column="0"
+                                    Style="{StaticResource CardBorderStyle}"
+                                    Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="Wialon Account"
+                                               Style="{StaticResource SectionTitleStyle}" />
+                                    <TextBlock Text="Load the saved Wialon setup, choose the account, and select an existing unit when the job card is a transfer or removal."
+                                               Margin="0,6,0,12"
+                                               Style="{StaticResource CompactHelpTextStyle}" />
 
-                        <TextBlock Text="Unique ID"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding UniqueId, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                                    <Border Background="{StaticResource CardTintBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="10,6"
+                                            HorizontalAlignment="Left">
+                                        <TextBlock Text="{Binding HardwareTypes.Count, StringFormat=Auto-loaded {0} hardware type(s)}"
+                                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                                    </Border>
 
-                        <TextBlock Text="Hardware Type"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding HardwareTypeSearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,8" />
-                        <ComboBox ItemsSource="{Binding FilteredHardwareTypes}"
-                                  SelectedItem="{Binding SelectedHardwareType}"
-                                  DisplayMemberPath="DisplayText"
-                                  Margin="0,0,0,12"
-                                  MinHeight="40" />
+                                    <TextBlock Text="Create Under Account"
+                                               Margin="0,16,0,6"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <ComboBox ItemsSource="{Binding AccountOptions}"
+                                              SelectedItem="{Binding SelectedAccount}"
+                                              DisplayMemberPath="DisplayText" />
 
-                        <TextBlock Text="Brand"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Brand, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                                    <Border Margin="0,16,0,0"
+                                            Background="{StaticResource AccentSoftBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Padding="14"
+                                            Visibility="{Binding RequiresExistingUnitSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
 
-                        <TextBlock Text="Model"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                                            <TextBlock Text="Existing Unit On Selected Account"
+                                                       Style="{StaticResource SectionTitleStyle}" />
 
-                        <TextBlock Text="Year"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Year, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                                            <WrapPanel Grid.Row="1"
+                                                       Margin="0,12,0,12"
+                                                       Orientation="Horizontal">
+                                                <Button Content="Load Existing Units"
+                                                        Width="160"
+                                                        Style="{StaticResource PrimaryButtonStyle}"
+                                                        Command="{Binding LoadExistingUnitsCommand}" />
+                                                <Border Margin="12,0,0,0"
+                                                        Background="{StaticResource CardBackgroundBrush}"
+                                                        BorderBrush="{StaticResource BorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="10"
+                                                        Padding="10,6"
+                                                        VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding SelectedAccountExistingWialonUnits.Count, StringFormat={}{0} matching unit(s)}"
+                                                               Foreground="{StaticResource SecondaryTextBrush}" />
+                                                </Border>
+                                            </WrapPanel>
 
-                        <TextBlock Text="Colour"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Colour, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                                            <Grid Grid.Row="2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="14" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Vehicle Class"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding VehicleClass, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                                                <StackPanel>
+                                                    <TextBlock Text="Search Existing Unit"
+                                                               Style="{StaticResource FieldLabelStyle}" />
+                                                    <TextBox Text="{Binding SelectedAccountExistingUnitSearchText, UpdateSourceTrigger=PropertyChanged}" />
+                                                </StackPanel>
 
-                        <TextBlock Text="Vehicle Type"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding VehicleType, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                                                <StackPanel Grid.Column="2">
+                                                    <TextBlock Text="Select Existing Unit"
+                                                               Style="{StaticResource FieldLabelStyle}" />
+                                                    <ComboBox ItemsSource="{Binding SelectedAccountExistingWialonUnits}"
+                                                              SelectedItem="{Binding SelectedAccountExistingWialonUnit}"
+                                                              MinHeight="40">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="{Binding Name, Mode=OneWay}"
+                                                                               FontWeight="SemiBold" />
+                                                                    <TextBlock Foreground="{StaticResource SecondaryTextBrush}"
+                                                                               FontSize="11.5">
+                                                                        <TextBlock.Text>
+                                                                            <MultiBinding Mode="OneWay"
+                                                                                          StringFormat="Unit ID: {0}  |  Unique ID: {1}">
+                                                                                <Binding Path="UnitId" Mode="OneWay" />
+                                                                                <Binding Path="UniqueIdDisplay" Mode="OneWay" />
+                                                                            </MultiBinding>
+                                                                        </TextBlock.Text>
+                                                                    </TextBlock>
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                            </Grid>
 
-                        <TextBlock Text="Registration Plate"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding RegistrationPlate, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                                            <TextBlock Grid.Row="3"
+                                                       Text="{Binding SelectedAccountExistingUnitsStatusMessage}"
+                                                       Margin="0,12,0,0"
+                                                       Style="{StaticResource CompactHelpTextStyle}" />
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
 
-                        <TextBlock Text="VIN"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Vin, UpdateSourceTrigger=PropertyChanged}" />
-                    </StackPanel>
+                            <Border Grid.Column="2"
+                                    Style="{StaticResource CardBorderStyle}"
+                                    Padding="16"
+                                    Background="{StaticResource AccentSoftBrush}"
+                                    VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="Flickswitch Lookup"
+                                               Style="{StaticResource SectionTitleStyle}" />
+                                    <TextBlock Text="Use the ICCID to fetch the MSISDN before a fresh installation is created. Transfers and removals can reuse selected unit details."
+                                               Margin="0,6,0,14"
+                                               Style="{StaticResource CompactHelpTextStyle}" />
 
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Job Card Fields"
-                                   Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="These custom fields mirror the job card details inside Wialon."
-                                   Margin="0,6,0,14"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   TextWrapping="Wrap" />
-                        <TextBlock Text="Read-only access is applied automatically to the standard internal users."
-                                   Margin="0,-6,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
+                                    <TextBlock Text="ICCID"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox Text="{Binding Iccid, UpdateSourceTrigger=PropertyChanged}"
+                                             Margin="0,0,0,12" />
 
-                        <TextBlock Text="Client"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Client, Mode=OneWay}"
-                                 Margin="0,0,0,6"
-                                 IsReadOnly="True" />
-                        <TextBlock Text="Auto-filled from the selected account."
-                                   Margin="0,0,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
+                                    <Border Background="{StaticResource CardBackgroundBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10"
+                                            Padding="12,10">
+                                        <StackPanel>
+                                            <TextBlock Text="Derived Phone"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                                            <TextBlock Text="{Binding ResolvedPhoneDisplay}"
+                                                       Margin="0,6,0,0"
+                                                       FontSize="16"
+                                                       FontWeight="Bold"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
+                </TabItem>
 
-                        <TextBlock Text="Job Card Type"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <ComboBox ItemsSource="{Binding JobCardTypes}"
-                                  SelectedItem="{Binding SelectedJobCardType}"
-                                  Margin="0,0,0,6"
-                                  MinHeight="40" />
-                        <TextBlock Text="Use Transfer when a unit moves between accounts or between different vehicles on the same account."
-                                   Margin="0,0,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock Text="Vehicle Details" Style="{StaticResource TabHeaderTextStyle}" />
+                    </TabItem.Header>
 
-                        <TextBlock Text="Contact 1"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Contact1, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <Grid Margin="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Contact 2"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding Contact2, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,12" />
+                            <Border Grid.Column="0"
+                                    Style="{StaticResource CardBorderStyle}"
+                                    Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="Wialon Unit Details"
+                                               Style="{StaticResource SectionTitleStyle}" />
+                                    <TextBlock Text="{Binding WialonUnitDetailsHelpText}"
+                                               Margin="0,6,0,14"
+                                               Style="{StaticResource CompactHelpTextStyle}" />
 
-                        <TextBlock Text="Make &amp; Model"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding MakeAndModel, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,6"
-                                 IsReadOnly="True" />
-                        <TextBlock Text="Auto-combined from Brand, Model, and Colour."
-                                   Margin="0,0,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
+                                    <TextBlock Text="Unit Name" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox Text="{Binding JobCardName, UpdateSourceTrigger=PropertyChanged}"
+                                             IsReadOnly="True"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
 
-                        <TextBlock Text="Registration &amp; Fleet"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Text="{Binding RegistrationFleet, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,0,0,6"
-                                 IsReadOnly="True" />
-                        <TextBlock Text="This mirrors Registration Plate automatically."
-                                   Margin="0,0,0,12"
-                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
+                                    <TextBlock Text="Unique ID" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox Text="{Binding UniqueId, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
 
-                        <Border Margin="0,6,0,0"
+                                    <TextBlock Text="Hardware Type Search" Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBox Text="{Binding HardwareTypeSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource FieldTextBoxStyle}" />
+
+                                    <TextBlock Text="Hardware Type" Style="{StaticResource FieldLabelStyle}" />
+                                    <ComboBox ItemsSource="{Binding FilteredHardwareTypes}"
+                                              SelectedItem="{Binding SelectedHardwareType}"
+                                              DisplayMemberPath="DisplayText"
+                                              Margin="0,0,0,10"
+                                              MinHeight="40" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    Style="{StaticResource CardBorderStyle}"
+                                    Padding="16">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="14" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel>
+                                        <TextBlock Text="Brand" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox Text="{Binding Brand, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource FieldTextBoxStyle}" />
+
+                                        <TextBlock Text="Model" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource FieldTextBoxStyle}" />
+
+                                        <TextBlock Text="Year" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox Text="{Binding Year, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource FieldTextBoxStyle}" />
+
+                                        <TextBlock Text="Colour" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox Text="{Binding Colour, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource FieldTextBoxStyle}" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Vehicle Class" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox Text="{Binding VehicleClass, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource FieldTextBoxStyle}" />
+
+                                        <TextBlock Text="Vehicle Type" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox Text="{Binding VehicleType, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource FieldTextBoxStyle}" />
+
+                                        <TextBlock Text="Registration Plate" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox Text="{Binding RegistrationPlate, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource FieldTextBoxStyle}" />
+
+                                        <TextBlock Text="VIN" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox Text="{Binding Vin, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock Text="Job Card Fields" Style="{StaticResource TabHeaderTextStyle}" />
+                    </TabItem.Header>
+
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="18" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0"
                                 Style="{StaticResource CardBorderStyle}"
-                                Padding="14"
+                                Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Client &amp; Contacts"
+                                           Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="These fields mirror the job card details inside Wialon."
+                                           Margin="0,6,0,14"
+                                           Style="{StaticResource CompactHelpTextStyle}" />
+
+                                <TextBlock Text="Client" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding Client, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         Style="{StaticResource FieldTextBoxStyle}" />
+
+                                <TextBlock Text="Job Card Type" Style="{StaticResource FieldLabelStyle}" />
+                                <ComboBox ItemsSource="{Binding JobCardTypes}"
+                                          SelectedItem="{Binding SelectedJobCardType}"
+                                          Margin="0,0,0,10"
+                                          MinHeight="40" />
+
+                                <TextBlock Text="Contact 1" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding Contact1, UpdateSourceTrigger=PropertyChanged}"
+                                         Style="{StaticResource FieldTextBoxStyle}" />
+
+                                <TextBlock Text="Contact 2" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding Contact2, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="2"
+                                Style="{StaticResource CardBorderStyle}"
+                                Padding="16"
                                 Background="{StaticResource AccentSoftBrush}">
                             <StackPanel>
-                                <TextBlock Text="Billing"
+                                <TextBlock Text="Auto-Filled Fields"
                                            Style="{StaticResource SectionTitleStyle}" />
-                                <TextBlock Text="The installed system type is derived from the selected extras unless you switch to OTHER. All pricing captured here is ex VAT."
-                                           Margin="0,6,0,12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           TextWrapping="Wrap" />
+                                <TextBlock Text="These values are kept in sync with the vehicle tab and written to the Wialon custom fields."
+                                           Margin="0,6,0,14"
+                                           Style="{StaticResource CompactHelpTextStyle}" />
 
-                                <CheckBox Content="Use OTHER as a custom system type"
-                                          IsChecked="{Binding UseCustomBillingSystem}"
-                                          Margin="0,0,0,8" />
+                                <TextBlock Text="Make &amp; Model" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding MakeAndModel, UpdateSourceTrigger=PropertyChanged}"
+                                         IsReadOnly="True"
+                                         Style="{StaticResource FieldTextBoxStyle}" />
 
-                                <TextBlock Text="Custom System Type"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding CustomBillingSystemName, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,10"
-                                         IsEnabled="{Binding UseCustomBillingSystem}" />
-
-                                <Border Background="{StaticResource CardBackgroundBrush}"
-                                        BorderBrush="{StaticResource BorderBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="12"
-                                        Padding="10,8"
-                                        Margin="0,0,0,12">
-                                    <StackPanel>
-                                        <TextBlock Text="Resolved System Installed"
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource SecondaryTextBrush}" />
-                                        <TextBlock Text="{Binding BillingSystemTypeDisplay}"
-                                                   Margin="0,6,0,0"
-                                                   FontWeight="Bold"
-                                                   TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding BillingSummaryDisplay}"
-                                                   Margin="0,6,0,0"
-                                                   Foreground="{StaticResource SecondaryTextBrush}"
-                                                   FontSize="12"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
-
-                                <TextBlock Text="System Price (Ex VAT)"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding SystemPriceExVat, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,12" />
-
-                                <CheckBox Content="Panic Button installed"
-                                          IsChecked="{Binding HasPanicButton}"
-                                          Margin="0,0,0,6" />
-                                <TextBlock Text="Panic Button Price (Ex VAT)"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding PanicButtonPriceExVat, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,12"
-                                         IsEnabled="{Binding HasPanicButton}" />
-
-                                <CheckBox Content="Early Warning System installed"
-                                          IsChecked="{Binding HasEarlyWarningSystem}"
-                                          Margin="0,0,0,6" />
-                                <TextBlock Text="Early Warning System Price (Ex VAT)"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding EarlyWarningSystemPriceExVat, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,12"
-                                         IsEnabled="{Binding HasEarlyWarningSystem}" />
-
-                                <CheckBox Content="LV CAN adaptor installed"
-                                          IsChecked="{Binding HasLvCanAdaptor}"
-                                          Margin="0,0,0,6" />
-                                <TextBlock Text="LV CAN Adaptor Price (Ex VAT)"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding LvCanAdaptorPriceExVat, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,12"
-                                         IsEnabled="{Binding HasLvCanAdaptor}" />
-
-                                <TextBlock Text="BLE Sensor Quantity"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding BleSensorQuantity, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,8" />
-
-                                <TextBlock Text="BLE Sensor Unit Price (Ex VAT)"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding BleSensorUnitPriceExVat, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,12" />
-
-                                <TextBlock Text="Other Hardware Description"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding OtherHardwareDescription, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,8" />
-
-                                <TextBlock Text="Other Hardware Price (Ex VAT)"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding OtherHardwarePriceExVat, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,12" />
-
-                                <TextBlock Text="Billing Notes"
-                                           Style="{StaticResource FieldLabelStyle}" />
-                                <TextBox Text="{Binding BillingNotes, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,0,0,12"
-                                         AcceptsReturn="True"
-                                         TextWrapping="Wrap"
-                                         MinHeight="72" />
+                                <TextBlock Text="Registration &amp; Fleet" Style="{StaticResource FieldLabelStyle}" />
+                                <TextBox Text="{Binding RegistrationFleet, UpdateSourceTrigger=PropertyChanged}"
+                                         IsReadOnly="True"
+                                         Style="{StaticResource FieldTextBoxStyle}" />
 
                                 <Border Background="{StaticResource CardBackgroundBrush}"
                                         BorderBrush="{StaticResource BorderBrush}"
                                         BorderThickness="1"
-                                        CornerRadius="12"
-                                        Padding="10,8">
-                                    <StackPanel>
-                                        <TextBlock Text="Total Billing"
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource SecondaryTextBrush}" />
-                                        <TextBlock Text="{Binding BillingTotalExVatDisplay}"
-                                                   Margin="0,6,0,0"
-                                                   FontWeight="Bold"
-                                                   TextWrapping="Wrap" />
-                                    </StackPanel>
+                                        CornerRadius="10"
+                                        Padding="12,10">
+                                    <TextBlock Text="Read-only access is applied automatically to the standard internal users."
+                                               Style="{StaticResource CompactHelpTextStyle}" />
                                 </Border>
                             </StackPanel>
                         </Border>
-                    </StackPanel>
-                </Grid>
-            </ScrollViewer>
+                    </Grid>
+                </TabItem>
+
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock Text="Pricing" Style="{StaticResource TabHeaderTextStyle}" />
+                    </TabItem.Header>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <Grid Margin="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="14" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="14" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Style="{StaticResource CardBorderStyle}"
+                                        Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="QUICK STING"
+                                                   FontSize="18"
+                                                   FontWeight="Bold" />
+                                        <TextBlock Text="{Binding QuickStingPackagePriceDisplay}"
+                                                   Margin="0,8,0,0"
+                                                   FontSize="22"
+                                                   FontWeight="Bold"
+                                                   Foreground="{StaticResource AccentBrush}" />
+                                        <TextBlock Text="Base system price"
+                                                   Margin="0,6,0,0"
+                                                   Style="{StaticResource CompactHelpTextStyle}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="2"
+                                        Style="{StaticResource CardBorderStyle}"
+                                        Padding="16"
+                                        Background="{StaticResource AccentSoftBrush}">
+                                    <StackPanel>
+                                        <TextBlock Text="QUICK STING PLUS"
+                                                   FontSize="18"
+                                                   FontWeight="Bold" />
+                                        <TextBlock Text="{Binding QuickStingPlusPackagePriceDisplay}"
+                                                   Margin="0,8,0,0"
+                                                   FontSize="22"
+                                                   FontWeight="Bold"
+                                                   Foreground="{StaticResource AccentBrush}" />
+                                        <TextBlock Text="Base system plus selected panic or early warning extras"
+                                                   Margin="0,6,0,0"
+                                                   Style="{StaticResource CompactHelpTextStyle}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="4"
+                                        Style="{StaticResource CardBorderStyle}"
+                                        Padding="16">
+                                    <StackPanel>
+                                        <TextBlock Text="QUICK STING FM"
+                                                   FontSize="18"
+                                                   FontWeight="Bold" />
+                                        <TextBlock Text="{Binding QuickStingFmPackagePriceDisplay}"
+                                                   Margin="0,8,0,0"
+                                                   FontSize="22"
+                                                   FontWeight="Bold"
+                                                   Foreground="{StaticResource AccentBrush}" />
+                                        <TextBlock Text="Base system plus selected LV CAN adaptor"
+                                                   Margin="0,6,0,0"
+                                                   Style="{StaticResource CompactHelpTextStyle}" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.1*" />
+                                    <ColumnDefinition Width="18" />
+                                    <ColumnDefinition Width="0.9*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0"
+                                        Style="{StaticResource CardBorderStyle}"
+                                        Padding="16">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="14" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel>
+                                            <TextBlock Text="Billing Setup"
+                                                       Style="{StaticResource SectionTitleStyle}" />
+                                            <TextBlock Text="The installed system type is derived from the selected extras unless OTHER is enabled."
+                                                       Margin="0,6,0,12"
+                                                       Style="{StaticResource CompactHelpTextStyle}" />
+
+                                            <CheckBox Content="Use OTHER as a custom system type"
+                                                      IsChecked="{Binding UseCustomBillingSystem}"
+                                                      Margin="0,0,0,8" />
+
+                                            <TextBlock Text="Custom System Type" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox Text="{Binding CustomBillingSystemName, UpdateSourceTrigger=PropertyChanged}"
+                                                     IsEnabled="{Binding UseCustomBillingSystem}"
+                                                     Style="{StaticResource FieldTextBoxStyle}" />
+
+                                            <TextBlock Text="System Price (Ex VAT)" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox Text="{Binding SystemPriceExVat, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource FieldTextBoxStyle}" />
+
+                                            <CheckBox Content="Panic Button installed"
+                                                      IsChecked="{Binding HasPanicButton}"
+                                                      Margin="0,0,0,6" />
+                                            <TextBlock Text="Panic Button Price (Ex VAT)" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox Text="{Binding PanicButtonPriceExVat, UpdateSourceTrigger=PropertyChanged}"
+                                                     IsEnabled="{Binding HasPanicButton}"
+                                                     Style="{StaticResource FieldTextBoxStyle}" />
+
+                                            <CheckBox Content="Early Warning System installed"
+                                                      IsChecked="{Binding HasEarlyWarningSystem}"
+                                                      Margin="0,0,0,6" />
+                                            <TextBlock Text="Early Warning System Price (Ex VAT)" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox Text="{Binding EarlyWarningSystemPriceExVat, UpdateSourceTrigger=PropertyChanged}"
+                                                     IsEnabled="{Binding HasEarlyWarningSystem}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Hardware Extras"
+                                                       Style="{StaticResource SectionTitleStyle}" />
+                                            <TextBlock Text="Extras update package previews and the final billing total immediately."
+                                                       Margin="0,6,0,12"
+                                                       Style="{StaticResource CompactHelpTextStyle}" />
+
+                                            <CheckBox Content="LV CAN adaptor installed"
+                                                      IsChecked="{Binding HasLvCanAdaptor}"
+                                                      Margin="0,0,0,6" />
+                                            <TextBlock Text="LV CAN Adaptor Price (Ex VAT)" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox Text="{Binding LvCanAdaptorPriceExVat, UpdateSourceTrigger=PropertyChanged}"
+                                                     IsEnabled="{Binding HasLvCanAdaptor}"
+                                                     Style="{StaticResource FieldTextBoxStyle}" />
+
+                                            <TextBlock Text="BLE Sensor Quantity" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox Text="{Binding BleSensorQuantity, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource FieldTextBoxStyle}" />
+
+                                            <TextBlock Text="BLE Sensor Unit Price (Ex VAT)" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox Text="{Binding BleSensorUnitPriceExVat, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource FieldTextBoxStyle}" />
+
+                                            <TextBlock Text="Other Hardware Description" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox Text="{Binding OtherHardwareDescription, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource FieldTextBoxStyle}" />
+
+                                            <TextBlock Text="Other Hardware Price (Ex VAT)" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox Text="{Binding OtherHardwarePriceExVat, UpdateSourceTrigger=PropertyChanged}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <Border Grid.Column="2"
+                                        Style="{StaticResource CardBorderStyle}"
+                                        Padding="16"
+                                        Background="{StaticResource AccentSoftBrush}">
+                                    <StackPanel>
+                                        <TextBlock Text="Billing Summary"
+                                                   Style="{StaticResource SectionTitleStyle}" />
+
+                                        <Border Background="{StaticResource CardBackgroundBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="10"
+                                                Padding="12"
+                                                Margin="0,12,0,12">
+                                            <StackPanel>
+                                                <TextBlock Text="Resolved System Installed"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                                <TextBlock Text="{Binding BillingSystemTypeDisplay}"
+                                                           Margin="0,6,0,0"
+                                                           FontSize="18"
+                                                           FontWeight="Bold"
+                                                           TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding BillingSummaryDisplay}"
+                                                           Margin="0,6,0,0"
+                                                           Style="{StaticResource CompactHelpTextStyle}" />
+                                            </StackPanel>
+                                        </Border>
+
+                                        <TextBlock Text="Panic Button" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBlock Text="{Binding PanicButtonSummaryDisplay}"
+                                                   Margin="0,0,0,8"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Text="Early Warning System" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBlock Text="{Binding EarlyWarningSystemSummaryDisplay}"
+                                                   Margin="0,0,0,8"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Text="BLE Sensors" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBlock Text="{Binding BleSensorSummaryDisplay}"
+                                                   Margin="0,0,0,8"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Text="LV CAN Adaptor" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBlock Text="{Binding LvCanAdaptorSummaryDisplay}"
+                                                   Margin="0,0,0,8"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Text="Other Hardware" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBlock Text="{Binding OtherHardwareSummaryDisplay}"
+                                                   Margin="0,0,0,12"
+                                                   TextWrapping="Wrap" />
+
+                                        <TextBlock Text="Billing Notes" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox Text="{Binding BillingNotes, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 MinHeight="76"
+                                                 Margin="0,0,0,12" />
+
+                                        <Border Background="{StaticResource CardBackgroundBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="10"
+                                                Padding="12">
+                                            <StackPanel>
+                                                <TextBlock Text="Total Billing"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                                                <TextBlock Text="{Binding BillingTotalExVatDisplay}"
+                                                           Margin="0,6,0,0"
+                                                           FontSize="20"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
         </Border>
 
-        <Border Grid.Row="3"
-                Margin="0,16,0,0"
+        <Border Grid.Row="2"
+                Margin="0,14,0,0"
                 Style="{StaticResource CardBorderStyle}"
-                Padding="16,12">
+                Padding="14,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -504,12 +677,15 @@
                     <TextBlock Text="{Binding StatusMessage}"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
-                    <WrapPanel Margin="0,8,0,0"
+                    <WrapPanel Margin="0,6,0,0"
                                Orientation="Horizontal">
                         <TextBlock Text="{Binding NextJobCardNumber, StringFormat=Next job card: {0}}"
                                    Margin="0,0,18,0"
                                    Foreground="{StaticResource SecondaryTextBrush}" />
                         <TextBlock Text="{Binding ResolvedPhoneDisplay, StringFormat=Derived phone: {0}}"
+                                   Margin="0,0,18,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                        <TextBlock Text="{Binding BillingSummaryDisplay}"
                                    Foreground="{StaticResource SecondaryTextBrush}" />
                     </WrapPanel>
                 </StackPanel>

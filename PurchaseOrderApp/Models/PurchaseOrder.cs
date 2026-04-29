@@ -12,6 +12,8 @@ namespace PurchaseOrderApp.Models
         [Required]
         public string OrderNumber { get; set; }
 
+        public bool OrderNumberManuallyEdited { get; set; }
+
         public DateTime Date { get; set; }
         public string Reference { get; set; }
 

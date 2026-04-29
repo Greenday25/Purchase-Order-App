@@ -62,7 +62,7 @@
                         CornerRadius="14"
                         Padding="14,10"
                         VerticalAlignment="Top">
-                    <TextBlock Text="Order numbers are generated automatically from the selected company."
+                    <TextBlock Text="Order numbers are generated automatically, but you can edit them before saving."
                                Width="250"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
@@ -111,8 +111,8 @@
                                    Style="{StaticResource FieldLabelStyle}" />
                         <TextBox Grid.Row="0"
                                  Margin="0,24,0,0"
-                                 Text="{Binding CurrentOrder.OrderNumber, UpdateSourceTrigger=PropertyChanged}"
-                                 IsReadOnly="True"
+                                 Text="{Binding OrderNumber, UpdateSourceTrigger=PropertyChanged}"
+                                 IsReadOnly="{Binding IsOrderNumberReadOnly}"
                                  FontSize="14" />
 
                         <TextBlock Grid.Row="1"
@@ -130,7 +130,6 @@
                         <TextBox Grid.Row="2"
                                  Margin="0,42,0,0"
                                  Text="{Binding CurrentOrder.Reference, UpdateSourceTrigger=PropertyChanged}"
-                                 TextChanged="OnReferenceChanged"
                                  FontSize="14" />
 
                         <TextBlock Grid.Row="3"
@@ -317,10 +316,6 @@
                         Width="110"
                         Margin="0,0,10,0"
                         Click="OnCloseWindow" />
-                <Button Content="Print Invoice"
-                        Width="130"
-                        Margin="0,0,10,0"
-                        Click="OnPrintInvoice" />
                 <Button Content="Export to PDF"
                         Width="130"
                         Margin="0,0,10,0"

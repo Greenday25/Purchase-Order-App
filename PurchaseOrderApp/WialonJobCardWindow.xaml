@@ -11,6 +11,10 @@
         MinWidth="1280"
         WindowStartupLocation="CenterScreen">
 
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </Window.Resources>
+
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -49,6 +53,27 @@
                                        FontSize="14"
                                        Foreground="{StaticResource SecondaryTextBrush}"
                                        TextWrapping="Wrap" />
+                            <Grid Margin="0,12,0,0"
+                                  Visibility="{Binding IsLoadingFromWialon, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <ProgressBar Height="8"
+                                             Minimum="0"
+                                             Maximum="100"
+                                             IsIndeterminate="True"
+                                             Foreground="{StaticResource AccentBrush}"
+                                             Background="{StaticResource CardBackgroundBrush}" />
+                                <TextBlock Grid.Column="2"
+                                           Text="Loading from Wialon..."
+                                           VerticalAlignment="Center"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                            </Grid>
                         </StackPanel>
                     </StackPanel>
 
@@ -143,14 +168,6 @@
                             Margin="0,0,12,0"
                             Style="{StaticResource PrimaryButtonStyle}"
                             Click="OnOpenEditorWindow" />
-                    <Button Content="Historical Register"
-                            Width="160"
-                            Margin="0,0,12,0"
-                            Click="OnOpenHistoricalWindow" />
-                    <Button Content="Load Wialon Setup"
-                            Width="150"
-                            Margin="0,0,12,0"
-                            Command="{Binding LoadWialonSetupCommand}" />
                     <Button Content="Back to Menu"
                             Width="120"
                             Click="OnCloseWindow" />
@@ -177,7 +194,7 @@
                         BorderThickness="1"
                         CornerRadius="12"
                         Padding="14,12">
-                    <TextBlock Text="The register now stays visible while the detailed create and historical flows open in their own windows."
+                    <TextBlock Text="The register stays visible while new job cards open in their own capture window."
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
                 </Border>
@@ -188,7 +205,7 @@
                         BorderThickness="1"
                         CornerRadius="12"
                         Padding="14,12">
-                    <TextBlock Text="Use New Job Card for fresh Wialon units, or Historical Register for older physical job cards where the unit already exists."
+                    <TextBlock Text="Use New Job Card for new register entries. Existing Wialon units are never removed from this screen."
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
                 </Border>
@@ -236,12 +253,14 @@
                             Margin="0,0,12,0"
                             Style="{StaticResource PrimaryButtonStyle}"
                             Click="OnOpenEditorWindow" />
-                    <Button Content="Historical Register"
-                            Width="160"
-                            Click="OnOpenHistoricalWindow" />
+                    <Button Content="Delete Entry"
+                            Width="120"
+                            Style="{StaticResource DangerButtonStyle}"
+                            Click="OnDeleteSelectedJobCard" />
                 </WrapPanel>
 
                 <DataGrid Grid.Row="1"
+                          x:Name="JobCardRegisterGrid"
                           Grid.ColumnSpan="2"
                           Margin="0,16,0,0"
                           ItemsSource="{Binding JobCardHistory}"
@@ -249,6 +268,7 @@
                           CanUserAddRows="False"
                           IsReadOnly="True"
                           SelectionUnit="FullRow"
+                          SelectionMode="Single"
                           MouseDoubleClick="OnJobCardDoubleClick"
                           EnableRowVirtualization="True"
                           EnableColumnVirtualization="True"

@@ -172,7 +172,7 @@ namespace PurchaseOrderApp.ViewModels
                 CurrentOrder.Vendor = value;
                 CurrentOrder.VendorId = value.VendorId;
 
-                if (CurrentOrder.PurchaseOrderId <= 0)
+                if (CurrentOrder.PurchaseOrderId <= 0 && !CurrentOrder.OrderNumberManuallyEdited)
                 {
                     RefreshOrderNumber();
                 }
@@ -181,6 +181,37 @@ namespace PurchaseOrderApp.ViewModels
 
         [ObservableProperty]
         private PurchaseOrder currentOrder;
+
+        partial void OnCurrentOrderChanged(PurchaseOrder value)
+        {
+            OnPropertyChanged(nameof(OrderNumber));
+            OnPropertyChanged(nameof(IsOrderNumberReadOnly));
+        }
+
+        public string OrderNumber
+        {
+            get => CurrentOrder?.OrderNumber ?? string.Empty;
+            set
+            {
+                if (CurrentOrder == null)
+                {
+                    return;
+                }
+
+                value ??= string.Empty;
+
+                if (string.Equals(CurrentOrder.OrderNumber, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                CurrentOrder.OrderNumber = value;
+                CurrentOrder.OrderNumberManuallyEdited = !string.IsNullOrWhiteSpace(value);
+                OnPropertyChanged(nameof(OrderNumber));
+            }
+        }
+
+        public bool IsOrderNumberReadOnly => CurrentOrder?.PurchaseOrderId > 0;
 
         [ObservableProperty]
         private ObservableCollection<PurchaseOrderLine> lines;
@@ -394,6 +425,7 @@ namespace PurchaseOrderApp.ViewModels
             {
                 PurchaseOrderId = order.PurchaseOrderId,
                 OrderNumber = order.OrderNumber,
+                OrderNumberManuallyEdited = order.OrderNumberManuallyEdited,
                 Date = order.Date,
                 Reference = order.Reference,
                 VendorId = selectedVendor?.VendorId ?? order.VendorId,
@@ -428,12 +460,17 @@ namespace PurchaseOrderApp.ViewModels
 
             if (CurrentOrder == null) return;
 
-            RefreshOrderNumber(db);
+            if (string.IsNullOrWhiteSpace(CurrentOrder.OrderNumber))
+            {
+                RefreshOrderNumber(db);
+            }
+
             CurrentOrder.Vendor = db.Vendors.Find(CurrentOrder.VendorId) ?? CurrentOrder.Vendor;
 
             var order = new PurchaseOrder
             {
                 OrderNumber = CurrentOrder.OrderNumber,
+                OrderNumberManuallyEdited = CurrentOrder.OrderNumberManuallyEdited,
                 Date = CurrentOrder.Date,
                 Reference = CurrentOrder.Reference,
                 BillTo = CurrentOrder.BillTo,
@@ -453,6 +490,7 @@ namespace PurchaseOrderApp.ViewModels
             db.PurchaseOrders.Add(order);
             db.SaveChanges();
             LoadOrderHistory(db);
+            CurrentOrder.OrderNumberManuallyEdited = false;
             RefreshOrderNumber(db);
         }
 
@@ -486,7 +524,12 @@ namespace PurchaseOrderApp.ViewModels
 
         private void RefreshOrderNumber(PurchaseOrderContext db)
         {
-            if (CurrentOrder == null)
+            if (CurrentOrder == null || CurrentOrder.PurchaseOrderId > 0)
+            {
+                return;
+            }
+
+            if (CurrentOrder.OrderNumberManuallyEdited && !string.IsNullOrWhiteSpace(CurrentOrder.OrderNumber))
             {
                 return;
             }
@@ -499,7 +542,8 @@ namespace PurchaseOrderApp.ViewModels
                     .FirstOrDefault();
 
             CurrentOrder.OrderNumber = GenerateNextOrderNumber(db, companyName);
-            OnPropertyChanged(nameof(CurrentOrder));
+            CurrentOrder.OrderNumberManuallyEdited = false;
+            OnPropertyChanged(nameof(OrderNumber));
         }
 
         private void LoadOrderHistory(PurchaseOrderContext db)
@@ -544,6 +588,7 @@ namespace PurchaseOrderApp.ViewModels
         private static void EnsureDatabaseSchema(PurchaseOrderContext db)
         {
             var columnNames = GetPurchaseOrderColumnNames(db);
+            AddColumnIfMissing(db, columnNames, "OrderNumberManuallyEdited", "INTEGER NOT NULL DEFAULT 0");
             AddColumnIfMissing(db, columnNames, "IncludeVat", "INTEGER NOT NULL DEFAULT 1");
             AddColumnIfMissing(db, columnNames, "ManagerApprovedAt", "TEXT NULL");
             AddColumnIfMissing(db, columnNames, "DirectorApprovedAt", "TEXT NULL");
@@ -597,6 +642,7 @@ namespace PurchaseOrderApp.ViewModels
 
             var sql = columnName switch
             {
+                "OrderNumberManuallyEdited" => "ALTER TABLE PurchaseOrders ADD COLUMN OrderNumberManuallyEdited INTEGER NOT NULL DEFAULT 0",
                 "IncludeVat" => "ALTER TABLE PurchaseOrders ADD COLUMN IncludeVat INTEGER NOT NULL DEFAULT 1",
                 "ManagerApprovedAt" => "ALTER TABLE PurchaseOrders ADD COLUMN ManagerApprovedAt TEXT NULL",
                 "DirectorApprovedAt" => "ALTER TABLE PurchaseOrders ADD COLUMN DirectorApprovedAt TEXT NULL",
@@ -774,6 +820,18 @@ namespace PurchaseOrderApp.ViewModels
                 var nextSequence = nextSequenceByPrefix.TryGetValue(prefix, out var existingSequence)
                     ? existingSequence
                     : OrderSequenceStartingValue;
+                var currentSequence = ExtractOrderSequence(order.OrderNumber, prefix);
+
+                if (order.OrderNumberManuallyEdited && !string.IsNullOrWhiteSpace(order.OrderNumber))
+                {
+                    if (currentSequence >= nextSequence)
+                    {
+                        nextSequence = currentSequence + 1;
+                    }
+
+                    nextSequenceByPrefix[prefix] = nextSequence;
+                    continue;
+                }
 
                 var expectedOrderNumber = $"{prefix}{nextSequence.ToString($"D{OrderSequenceDigits}")}";
                 if (!string.Equals(order.OrderNumber, expectedOrderNumber, StringComparison.OrdinalIgnoreCase))

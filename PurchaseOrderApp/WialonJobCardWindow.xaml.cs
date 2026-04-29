@@ -38,14 +38,45 @@ public partial class WialonJobCardWindow : Window
         editorWindow.ShowDialog();
     }
 
-    private void OnOpenHistoricalWindow(object sender, RoutedEventArgs e)
+    private void OnDeleteSelectedJobCard(object sender, RoutedEventArgs e)
     {
-        var historicalWindow = new WialonHistoricalJobCardWindow(viewModel)
+        if (JobCardRegisterGrid.SelectedItem is not JobCardHistoryItem jobCard)
         {
-            Owner = this
-        };
+            MessageBox.Show(
+                this,
+                "Select a job card entry to delete from the local register.",
+                "Delete Job Card Entry",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
 
-        historicalWindow.ShowDialog();
+        var result = MessageBox.Show(
+            this,
+            $"Delete local job card entry {jobCard.JobCardNumber}?\n\nThis will only remove it from this app's register. It will not delete or change anything in Wialon.",
+            "Delete Job Card Entry",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        try
+        {
+            viewModel.DeleteJobCardEntry(jobCard.JobCardRecordId);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                this,
+                $"I couldn't delete that local job card entry: {ex.Message}",
+                "Delete Job Card Entry",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
     }
 
     private void OnJobCardDoubleClick(object sender, MouseButtonEventArgs e)

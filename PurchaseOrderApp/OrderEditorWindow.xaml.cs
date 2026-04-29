@@ -109,14 +109,6 @@ public partial class OrderEditorWindow : Window
         Close();
     }
 
-    private void OnReferenceChanged(object sender, TextChangedEventArgs e)
-    {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.RefreshOrderNumber();
-        }
-    }
-
     private void OnIncludeVatChanged(object sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
