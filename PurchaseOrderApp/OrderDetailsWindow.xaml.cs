@@ -59,6 +59,37 @@ public partial class OrderDetailsWindow : Window
         LoadOrderDetails();
     }
 
+    private void OnAmendOrder(object sender, RoutedEventArgs e)
+    {
+        var order = GetCurrentOrderDetails();
+        if (order == null)
+        {
+            return;
+        }
+
+        if (!order.CanAmend)
+        {
+            MessageBox.Show("Only pending approval orders can be amended.", "Amend blocked", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var editViewModel = new MainViewModel();
+        if (!editViewModel.LoadExistingOrder(_purchaseOrderId))
+        {
+            MessageBox.Show("I couldn't load that order for amendment.", "Amend failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var editorWindow = new OrderEditorWindow(editViewModel)
+        {
+            Owner = this
+        };
+
+        editorWindow.ShowDialog();
+        _mainViewModel.LoadOrderHistory();
+        LoadOrderDetails();
+    }
+
     private void OnMarkRejected(object sender, RoutedEventArgs e)
     {
         var order = GetCurrentOrderDetails();
@@ -175,12 +206,6 @@ public partial class OrderDetailsWindow : Window
         if (order.IsRejected)
         {
             MessageBox.Show("Rejected orders cannot receive new documents.", "Workflow order", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        if (!isInvoice && !order.IsApproved)
-        {
-            MessageBox.Show("Approve the order first before uploading the signed order.", "Approval required", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 

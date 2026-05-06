@@ -81,8 +81,8 @@ namespace PurchaseOrderApp.ViewModels
             {
                 OrderNumber = string.Empty,
                 Date = DateTime.Today,
-                Reference = "CARS OPS OFFICE",
-                BillTo = "ALBERTON HARDWARE",
+                Reference = string.Empty,
+                BillTo = string.Empty,
                 BillToAddress = "",
                 IncludeVat = true,
                 VATPercent = 15m,
@@ -236,6 +236,9 @@ namespace PurchaseOrderApp.ViewModels
         private ObservableCollection<OrderHistoryItem> filteredOrderHistory = [];
 
         [ObservableProperty]
+        private string lastSaveError = string.Empty;
+
+        [ObservableProperty]
         private OrderHistoryItem? selectedOrderHistoryItem;
 
         [ObservableProperty]
@@ -377,6 +380,7 @@ namespace PurchaseOrderApp.ViewModels
                 IsApproved = order.ManagerApprovedAt.HasValue || order.DirectorApprovedAt.HasValue,
                 IsRejected = order.RejectedAt.HasValue,
                 IsCompleted = !string.IsNullOrWhiteSpace(order.InvoiceFileName),
+                CanAmend = CanAmendOrder(order),
                 Lines = new ObservableCollection<OrderDetailsLineItem>(
                     order.Lines.Select(line => new OrderDetailsLineItem
                     {
@@ -454,15 +458,37 @@ namespace PurchaseOrderApp.ViewModels
         [RelayCommand]
         public void SavePurchaseOrder()
         {
+            TrySavePurchaseOrder();
+        }
+
+        public bool TrySavePurchaseOrder()
+        {
             RefreshTotals();
+            LastSaveError = string.Empty;
 
             using var db = new PurchaseOrderContext();
+            EnsureDatabaseSchema(db);
 
-            if (CurrentOrder == null) return;
+            if (!ValidatePurchaseOrderForSave(db))
+            {
+                return false;
+            }
+
+            if (CurrentOrder.PurchaseOrderId > 0)
+            {
+                return UpdateExistingPurchaseOrder(db);
+            }
 
             if (string.IsNullOrWhiteSpace(CurrentOrder.OrderNumber))
             {
                 RefreshOrderNumber(db);
+            }
+
+            CurrentOrder.OrderNumber = (CurrentOrder.OrderNumber ?? string.Empty).Trim();
+            if (IsDuplicateOrderNumber(db, CurrentOrder.OrderNumber, CurrentOrder.PurchaseOrderId))
+            {
+                LastSaveError = $"Order number {CurrentOrder.OrderNumber} already exists. Duplicate order numbers are not allowed.";
+                return false;
             }
 
             CurrentOrder.Vendor = db.Vendors.Find(CurrentOrder.VendorId) ?? CurrentOrder.Vendor;
@@ -489,9 +515,140 @@ namespace PurchaseOrderApp.ViewModels
 
             db.PurchaseOrders.Add(order);
             db.SaveChanges();
+            OrderArchiveService.TrySyncOrderFolder(order.PurchaseOrderId);
             LoadOrderHistory(db);
             CurrentOrder.OrderNumberManuallyEdited = false;
             RefreshOrderNumber(db);
+            return true;
+        }
+
+        public bool ValidatePurchaseOrderForSave()
+        {
+            LastSaveError = string.Empty;
+
+            using var db = new PurchaseOrderContext();
+            EnsureDatabaseSchema(db);
+            return ValidatePurchaseOrderForSave(db);
+        }
+
+        private bool ValidatePurchaseOrderForSave(PurchaseOrderContext db)
+        {
+            if (CurrentOrder == null)
+            {
+                LastSaveError = "There is no purchase order loaded to save.";
+                return false;
+            }
+
+            CurrentOrder.Reference = (CurrentOrder.Reference ?? string.Empty).Trim();
+            CurrentOrder.BillTo = (CurrentOrder.BillTo ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(CurrentOrder.Reference))
+            {
+                LastSaveError = "Reference is required before saving this purchase order.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(CurrentOrder.BillTo))
+            {
+                LastSaveError = "Bill To is required before saving this purchase order.";
+                return false;
+            }
+
+            if (CurrentOrder.PurchaseOrderId > 0)
+            {
+                var existingOrder = db.PurchaseOrders
+                    .AsNoTracking()
+                    .FirstOrDefault(item => item.PurchaseOrderId == CurrentOrder.PurchaseOrderId);
+
+                if (existingOrder == null || !CanAmendOrder(existingOrder))
+                {
+                    LastSaveError = "Approved, rejected, signed, or completed orders cannot be amended.";
+                    return false;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(CurrentOrder.OrderNumber))
+            {
+                RefreshOrderNumber(db);
+            }
+
+            CurrentOrder.OrderNumber = (CurrentOrder.OrderNumber ?? string.Empty).Trim();
+            if (IsDuplicateOrderNumber(db, CurrentOrder.OrderNumber, CurrentOrder.PurchaseOrderId))
+            {
+                LastSaveError = $"Order number {CurrentOrder.OrderNumber} already exists. Duplicate order numbers are not allowed.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool UpdateExistingPurchaseOrder(PurchaseOrderContext db)
+        {
+            var order = db.PurchaseOrders
+                .Include(item => item.Lines)
+                .FirstOrDefault(item => item.PurchaseOrderId == CurrentOrder.PurchaseOrderId);
+
+            if (order == null || !CanAmendOrder(order))
+            {
+                LastSaveError = "Approved, rejected, signed, or completed orders cannot be amended.";
+                return false;
+            }
+
+            CurrentOrder.OrderNumber = (CurrentOrder.OrderNumber ?? string.Empty).Trim();
+            if (IsDuplicateOrderNumber(db, CurrentOrder.OrderNumber, CurrentOrder.PurchaseOrderId))
+            {
+                LastSaveError = $"Order number {CurrentOrder.OrderNumber} already exists. Duplicate order numbers are not allowed.";
+                return false;
+            }
+
+            order.OrderNumber = CurrentOrder.OrderNumber;
+            order.OrderNumberManuallyEdited = CurrentOrder.OrderNumberManuallyEdited;
+            order.Date = CurrentOrder.Date;
+            order.Reference = CurrentOrder.Reference;
+            order.BillTo = CurrentOrder.BillTo;
+            order.BillToAddress = CurrentOrder.BillToAddress;
+            order.IncludeVat = CurrentOrder.IncludeVat;
+            order.VATPercent = CurrentOrder.VATPercent;
+            order.VendorId = CurrentOrder.VendorId;
+
+            db.PurchaseOrderLines.RemoveRange(order.Lines);
+            order.Lines = Lines.Select(l => new PurchaseOrderLine
+            {
+                PurchaseOrderId = order.PurchaseOrderId,
+                Quantity = l.Quantity,
+                PartNumber = l.PartNumber,
+                Description = l.Description,
+                UnitPrice = l.UnitPrice
+            }).ToList();
+
+            db.SaveChanges();
+            OrderArchiveService.TrySyncOrderFolder(order.PurchaseOrderId);
+            LoadOrderHistory(db);
+            return true;
+        }
+
+        private static bool CanAmendOrder(PurchaseOrder order)
+        {
+            return !order.ManagerApprovedAt.HasValue &&
+                !order.DirectorApprovedAt.HasValue &&
+                !order.RejectedAt.HasValue &&
+                string.IsNullOrWhiteSpace(order.SignedOrderFileName) &&
+                string.IsNullOrWhiteSpace(order.InvoiceFileName);
+        }
+
+        private static bool IsDuplicateOrderNumber(PurchaseOrderContext db, string? orderNumber, int currentOrderId)
+        {
+            if (string.IsNullOrWhiteSpace(orderNumber))
+            {
+                return false;
+            }
+
+            var normalizedOrderNumber = orderNumber.Trim();
+            return db.PurchaseOrders
+                .AsNoTracking()
+                .Where(order => order.PurchaseOrderId != currentOrderId)
+                .AsEnumerable()
+                .Any(order => string.Equals(order.OrderNumber?.Trim(), normalizedOrderNumber, StringComparison.OrdinalIgnoreCase));
         }
 
         private void RefreshTotals()
@@ -701,9 +858,13 @@ namespace PurchaseOrderApp.ViewModels
             {
                 order.SignedOrderFileName = fileName;
                 order.SignedOrderContent = content;
+                var approvalTime = order.ManagerApprovedAt ?? order.DirectorApprovedAt ?? DateTime.Now;
+                order.ManagerApprovedAt = approvalTime;
+                order.DirectorApprovedAt = approvalTime;
             }
 
             db.SaveChanges();
+            OrderArchiveService.TrySyncOrderFolder(orderId);
             LoadOrderHistory(db);
 
             if (!string.IsNullOrWhiteSpace(order.SignedOrderFileName) &&

@@ -3,7 +3,9 @@ using iText.IO.Font;
 using iText.IO.Font.Constants;
 using iText.Kernel.Colors;
 using iText.Kernel.Font;
+using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas;
 using iText.Layout;
 using iText.Layout.Borders;
 using iTextParagraph = iText.Layout.Element.Paragraph;
@@ -78,6 +80,7 @@ public partial class OrderEditorWindow : Window
     private const float PdfItemRowPadding = 1.5f;
     private const float PdfItemHeaderMinHeight = 22f;
     private const float PdfItemRowMinHeight = 17f;
+    private const float PdfExportScale = 0.85f;
     private const double PrintDocumentContentWidth = 604;
     private const double PrintRecipientBoxWidth = PrintDocumentContentWidth - OrderInfoBoxWidth - RecipientOrderGapWidth;
     private sealed record PostInvoiceLineDefinition(string? Label, string Value, bool IsEmphasized = false);
@@ -682,7 +685,7 @@ public partial class OrderEditorWindow : Window
 
     private static void AddPdfFooterBlock(Document document, PdfFont font)
     {
-        var signatureTable = new iTextTable(new float[] { 170f, 1f }).UseAllAvailableWidth().SetMarginTop(8).SetMarginBottom(2);
+        var signatureTable = new iTextTable(new float[] { 170f, 1f }).UseAllAvailableWidth().SetMarginTop(4).SetMarginBottom(0);
         signatureTable.SetBorder(iText.Layout.Borders.Border.NO_BORDER);
         signatureTable.AddCell(new iTextCell()
             .Add(new iTextParagraph(AuthorisedSignatureLabel).SetFont(font).SetFontSize(11))
@@ -701,8 +704,8 @@ public partial class OrderEditorWindow : Window
 
         document.Add(new iTextParagraph(QuoteOrderFooterText)
             .SetFont(font)
-            .SetFontSize(10)
-            .SetMarginTop(4)
+            .SetFontSize(9)
+            .SetMarginTop(2)
             .SetMarginBottom(0));
     }
 
@@ -733,7 +736,45 @@ public partial class OrderEditorWindow : Window
 
     private void OnExportPdf(object sender, RoutedEventArgs e)
     {
-        ExportCurrentOrderToPdf();
+        if (DataContext is not MainViewModel vm)
+        {
+            return;
+        }
+
+        if (!vm.ValidatePurchaseOrderForSave())
+        {
+            MessageBox.Show(GetSaveFailureMessage(vm), "Save failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (ExportCurrentOrderToPdf() && vm.TrySavePurchaseOrder())
+        {
+            Close();
+            return;
+        }
+
+        MessageBox.Show(GetSaveFailureMessage(vm), "Save failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    private void OnSavePurchaseOrder(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            if (vm.TrySavePurchaseOrder())
+            {
+                Close();
+                return;
+            }
+
+            MessageBox.Show(GetSaveFailureMessage(vm), "Save failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private static string GetSaveFailureMessage(MainViewModel vm)
+    {
+        return string.IsNullOrWhiteSpace(vm.LastSaveError)
+            ? "I couldn't save this purchase order."
+            : vm.LastSaveError;
     }
 
     public bool ExportCurrentOrderToPdf(string? filePath = null, bool openAfterSave = true)
@@ -746,18 +787,22 @@ public partial class OrderEditorWindow : Window
             var postInvoiceLines = GetPostInvoiceLines(vm);
             filePath ??= GetAutoPdfExportPath(vm.CurrentOrder.OrderNumber);
 
-            var targetDirectory = Path.GetDirectoryName(filePath);
+            var targetDirectory = System.IO.Path.GetDirectoryName(filePath);
             if (!string.IsNullOrWhiteSpace(targetDirectory))
             {
                 Directory.CreateDirectory(targetDirectory);
             }
 
-            using var pdfWriter = new PdfWriter(filePath);
+            var unscaledFilePath = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                $"PurchaseOrder_{Guid.NewGuid():N}.pdf");
+
+            using var pdfWriter = new PdfWriter(unscaledFilePath);
             using var pdfDocument = new PdfDocument(pdfWriter);
             using var document = new Document(pdfDocument);
 
-            // Set margins: reduced top margin to fit on one page, others standard (1 inch = 72 points)
-            document.SetMargins(18, 72, 72, 72);
+            // Keep the generated order to one A4 page while preserving the printed layout.
+            document.SetMargins(18, 72, 24, 72);
 
             var font = CreatePdfDocumentFont("arial.ttf", StandardFonts.HELVETICA);
             var boldFont = CreatePdfDocumentFont("arialbd.ttf", StandardFonts.HELVETICA_BOLD);
@@ -1032,6 +1077,8 @@ public partial class OrderEditorWindow : Window
             AddPdfFooterBlock(document, font);
 
             document.Close();
+            ApplyPdfExportScale(unscaledFilePath, filePath, PdfExportScale);
+            TryDeleteFile(unscaledFilePath);
 
             if (openAfterSave)
             {
@@ -1050,6 +1097,44 @@ public partial class OrderEditorWindow : Window
             }
             MessageBox.Show($"Export to PDF failed:\n{ex}", "Export failed", MessageBoxButton.OK, MessageBoxImage.Error);
             return false;
+        }
+    }
+
+    private static void ApplyPdfExportScale(string sourceFilePath, string targetFilePath, float scale)
+    {
+        using var sourceReader = new PdfReader(sourceFilePath);
+        using var sourceDocument = new PdfDocument(sourceReader);
+        using var targetWriter = new PdfWriter(targetFilePath);
+        using var targetDocument = new PdfDocument(targetWriter);
+
+        var sourcePage = sourceDocument.GetFirstPage();
+        var sourcePageSize = sourcePage.GetPageSize();
+        targetDocument.SetDefaultPageSize(new PageSize(sourcePageSize));
+
+        var targetPage = targetDocument.AddNewPage();
+        var pageCopy = sourcePage.CopyAsFormXObject(targetDocument);
+        var scaledWidth = sourcePageSize.GetWidth() * scale;
+        var scaledHeight = sourcePageSize.GetHeight() * scale;
+        var offsetX = (sourcePageSize.GetWidth() - scaledWidth) / 2f;
+        var offsetY = (sourcePageSize.GetHeight() - scaledHeight) / 2f;
+
+        var canvas = new PdfCanvas(targetPage);
+        canvas.SaveState();
+        canvas.AddXObjectWithTransformationMatrix(pageCopy, scale, 0, 0, scale, offsetX, offsetY);
+        canvas.RestoreState();
+    }
+
+    private static void TryDeleteFile(string filePath)
+    {
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
+        catch
+        {
         }
     }
 

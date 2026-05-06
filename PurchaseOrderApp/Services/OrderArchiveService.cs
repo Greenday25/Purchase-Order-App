@@ -12,31 +12,33 @@ internal static class OrderArchiveService
 {
     private const string ArchiveRootFolderName = "orders";
     private const string OrderPdfFileName = "Purchase Order.pdf";
-    private const string SignedOrderBaseFileName = "Signed Order";
+    private const string SignedOrderBaseFileName = "Approved Purchase Order";
     private const string InvoiceBaseFileName = "Invoice";
 
     private static readonly HashSet<char> InvalidFileNameCharacters = new(Path.GetInvalidFileNameChars());
 
     internal static bool TryArchiveCompletedOrder(int orderId)
     {
+        return TrySyncOrderFolder(orderId, showWarnings: true);
+    }
+
+    internal static bool TrySyncOrderFolder(int orderId)
+    {
+        return TrySyncOrderFolder(orderId, showWarnings: false);
+    }
+
+    private static bool TrySyncOrderFolder(int orderId, bool showWarnings)
+    {
         try
         {
             var archiveViewModel = new MainViewModel();
             if (!archiveViewModel.LoadExistingOrder(orderId) || archiveViewModel.CurrentOrder == null)
             {
-                ShowWarning($"I couldn't reload order {orderId} for archiving.", "Archive failed");
+                ShowWarningIfRequested(showWarnings, $"I couldn't reload order {orderId} for archiving.", "Archive failed");
                 return false;
             }
 
             var order = archiveViewModel.CurrentOrder;
-            if (!HasCompletedDocuments(order))
-            {
-                ShowWarning(
-                    $"Order {order.OrderNumber} does not have both the signed order and invoice yet, so the archive folder was not created.",
-                    "Archive not ready");
-                return false;
-            }
-
             var archiveFolderPath = GetArchiveFolderPath(order);
             Directory.CreateDirectory(archiveFolderPath);
 
@@ -48,17 +50,21 @@ internal static class OrderArchiveService
                 return false;
             }
 
-            if (!SaveArchivedDocument(archiveFolderPath, SignedOrderBaseFileName, order.SignedOrderFileName, order.SignedOrderContent))
+            if (HasDocument(order.SignedOrderFileName, order.SignedOrderContent) &&
+                !SaveArchivedDocument(archiveFolderPath, SignedOrderBaseFileName, order.SignedOrderFileName, order.SignedOrderContent))
             {
-                ShowWarning(
+                ShowWarningIfRequested(
+                    showWarnings,
                     $"I couldn't copy the signed order for {order.OrderNumber} into the archive folder.",
                     "Archive failed");
                 return false;
             }
 
-            if (!SaveArchivedDocument(archiveFolderPath, InvoiceBaseFileName, order.InvoiceFileName, order.InvoiceContent))
+            if (HasDocument(order.InvoiceFileName, order.InvoiceContent) &&
+                !SaveArchivedDocument(archiveFolderPath, InvoiceBaseFileName, order.InvoiceFileName, order.InvoiceContent))
             {
-                ShowWarning(
+                ShowWarningIfRequested(
+                    showWarnings,
                     $"I couldn't copy the invoice for {order.OrderNumber} into the archive folder.",
                     "Archive failed");
                 return false;
@@ -68,18 +74,14 @@ internal static class OrderArchiveService
         }
         catch (System.Exception ex)
         {
-            ShowWarning($"I couldn't save the completed order archive.\n\n{ex.Message}", "Archive failed");
+            ShowWarningIfRequested(showWarnings, $"I couldn't save the order folder.\n\n{ex.Message}", "Archive failed");
             return false;
         }
     }
 
-    private static bool HasCompletedDocuments(PurchaseOrder order)
+    private static bool HasDocument(string? fileName, byte[]? content)
     {
-        return !string.IsNullOrWhiteSpace(order.OrderNumber)
-            && !string.IsNullOrWhiteSpace(order.SignedOrderFileName)
-            && order.SignedOrderContent is { Length: > 0 }
-            && !string.IsNullOrWhiteSpace(order.InvoiceFileName)
-            && order.InvoiceContent is { Length: > 0 };
+        return !string.IsNullOrWhiteSpace(fileName) && content is { Length: > 0 };
     }
 
     private static string GetArchiveFolderPath(PurchaseOrder order)
@@ -143,5 +145,13 @@ internal static class OrderArchiveService
     private static void ShowWarning(string message, string title)
     {
         MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    private static void ShowWarningIfRequested(bool showWarning, string message, string title)
+    {
+        if (showWarning)
+        {
+            ShowWarning(message, title);
+        }
     }
 }

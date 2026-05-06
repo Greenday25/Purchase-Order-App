@@ -16,6 +16,77 @@
         <vm:MainViewModel />
     </Window.DataContext>
 
+    <Window.Resources>
+        <Style x:Key="LineItemInputStyle" TargetType="TextBox">
+            <Setter Property="Margin" Value="4,6" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Style.Triggers>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                    <Setter Property="Background" Value="#FBFEFF" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="LineItemNumberInputStyle" TargetType="TextBox" BasedOn="{StaticResource LineItemInputStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+        </Style>
+
+        <Style x:Key="LineItemTotalTextStyle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="4,6" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{StaticResource CardTintBrush}" />
+        </Style>
+
+        <Style x:Key="LineItemsGridStyle" TargetType="DataGrid" BasedOn="{StaticResource {x:Type DataGrid}}">
+            <Setter Property="GridLinesVisibility" Value="None" />
+            <Setter Property="RowBackground" Value="#FFFFFF" />
+            <Setter Property="AlternatingRowBackground" Value="#F8FCFE" />
+            <Setter Property="CellStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="Padding" Value="0" />
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#DFF3F8" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="RowStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <Setter Property="MinHeight" Value="54" />
+                        <Setter Property="Margin" Value="0,0,0,5" />
+                        <Setter Property="BorderBrush" Value="{StaticResource DividerBrush}" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#EEF7FA" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#DFF3F8" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -124,7 +195,7 @@
                                     SelectedDate="{Binding CurrentOrder.Date, UpdateSourceTrigger=PropertyChanged}" />
 
                         <TextBlock Grid.Row="2"
-                                   Text="Reference"
+                                   Text="Reference *"
                                    Style="{StaticResource FieldLabelStyle}"
                                    Margin="0,18,0,6" />
                         <TextBox Grid.Row="2"
@@ -144,7 +215,7 @@
                                   FontSize="14" />
 
                         <TextBlock Grid.Row="4"
-                                   Text="Bill To"
+                                   Text="Bill To *"
                                    Style="{StaticResource FieldLabelStyle}"
                                    Margin="0,18,0,6" />
                         <TextBox Grid.Row="4"
@@ -243,20 +314,61 @@
                     <DataGrid Grid.Row="1"
                               Margin="0,20,0,0"
                               ItemsSource="{Binding Lines}"
+                              Style="{StaticResource LineItemsGridStyle}"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
-                              SelectionMode="Single">
+                              SelectionMode="Single"
+                              RowHeaderWidth="0"
+                              ColumnHeaderHeight="34">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity, StringFormat={}{0:0}, UpdateSourceTrigger=PropertyChanged}" Width="90" />
-                            <DataGridTextColumn Header="Part No." Binding="{Binding PartNumber, UpdateSourceTrigger=PropertyChanged}" Width="130" />
-                            <DataGridTextColumn Header="Description" Binding="{Binding Description, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                            <DataGridTextColumn Header="Unit Price" Binding="{Binding UnitPrice, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}" Width="110" />
-                            <DataGridTextColumn Header="Line Total" Binding="{Binding LineTotal, StringFormat=N2}" Width="110" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="Quantity" Width="105">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource LineItemNumberInputStyle}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Part No." Width="145">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding PartNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource LineItemInputStyle}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Description" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource LineItemInputStyle}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Unit Price" Width="125">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding UnitPrice, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource LineItemNumberInputStyle}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Line Total" Width="125" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding LineTotal, StringFormat=N2}"
+                                                   Style="{StaticResource LineItemTotalTextStyle}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="Action" Width="110">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Content="Remove"
-                                                Margin="4,2"
+                                                Width="86"
+                                                Height="34"
+                                                Margin="4,6"
+                                                VerticalAlignment="Center"
                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 CommandParameter="{Binding}" />
                                     </DataTemplate>
@@ -323,7 +435,7 @@
                 <Button Content="Save PO"
                         Width="120"
                         Style="{StaticResource PrimaryButtonStyle}"
-                        Command="{Binding SavePurchaseOrderCommand}" />
+                        Click="OnSavePurchaseOrder" />
             </StackPanel>
         </Border>
     </Grid>

@@ -21,6 +21,7 @@ namespace PurchaseOrderApp.ViewModels
         public bool IsApproved { get; init; }
         public bool IsRejected { get; init; }
         public bool IsCompleted { get; init; }
+        public bool CanAmend { get; init; }
         public bool HasSignedOrder => !string.Equals(SignedOrderFileName, "Not Uploaded", StringComparison.OrdinalIgnoreCase);
         public bool HasInvoice => !string.Equals(InvoiceFileName, "Not Uploaded", StringComparison.OrdinalIgnoreCase);
         public bool CanDelete => !IsCompleted;

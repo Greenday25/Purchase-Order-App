@@ -173,12 +173,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!isInvoice && !(order.ManagerApprovedAt.HasValue || order.DirectorApprovedAt.HasValue))
-        {
-            MessageBox.Show("Approve the order first before uploading the signed order.", "Approval required", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
         if (isInvoice && string.IsNullOrWhiteSpace(order.SignedOrderFileName))
         {
             MessageBox.Show("Upload the signed order first so the order can move into the closed state before the invoice is added.", "Signed order required", MessageBoxButton.OK, MessageBoxImage.Information);
