@@ -310,6 +310,87 @@
                             </StackPanel>
                         </Border>
 
+                        <TextBlock Text="Received Stock"
+                                   Margin="0,20,0,10"
+                                   Style="{StaticResource SectionTitleStyle}" />
+
+                        <Border Background="{StaticResource CardTintBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="16"
+                                Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="{Binding LinkedReceiptCount, StringFormat={}{0} linked receipt line(s)}"
+                                           FontWeight="Bold" />
+                                <TextBlock Text="{Binding LinkedReceiptQuantity, StringFormat={}{0} unit(s) received against this order}"
+                                           Margin="0,6,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           TextWrapping="Wrap" />
+
+                                <TextBlock Text="No inventory receipts have been linked to this purchase order yet."
+                                           Margin="0,12,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           TextWrapping="Wrap">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasLinkedReceipts}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <ItemsControl ItemsSource="{Binding LinkedReceipts}"
+                                              Margin="0,12,0,0">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasLinkedReceipts}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="White"
+                                                    BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="12"
+                                                    Padding="12"
+                                                    Margin="0,0,0,10">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding ReceiptNumber}"
+                                                               FontWeight="Bold" />
+                                                    <TextBlock Text="{Binding ItemDisplay}"
+                                                               Margin="0,6,0,0"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Quantity, StringFormat=Qty Received: {0}}"
+                                                               Margin="0,6,0,0"
+                                                               Foreground="{StaticResource SecondaryTextBrush}" />
+                                                    <TextBlock Text="{Binding SupplierName, StringFormat=Supplier: {0}}"
+                                                               Margin="0,4,0,0"
+                                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding ReceivedAtDisplay, StringFormat=Received: {0}}"
+                                                               Margin="0,4,0,0"
+                                                               Foreground="{StaticResource SecondaryTextBrush}" />
+                                                    <TextBlock Text="{Binding Notes}"
+                                                               Margin="0,6,0,0"
+                                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                                               TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
                         <TextBlock Text="Status Actions"
                                    Margin="0,20,0,10"
                                    Style="{StaticResource SectionTitleStyle}" />

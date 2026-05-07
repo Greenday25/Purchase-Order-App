@@ -1,0 +1,753 @@
+<Window x:Class="PurchaseOrderApp.InventoryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Stock Inventory"
+        Height="940"
+        Width="1560"
+        MinHeight="820"
+        MinWidth="1320"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style x:Key="CompactButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+
+        <Style x:Key="CompactPrimaryButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+
+        <Style x:Key="CompactTextBoxStyle"
+               TargetType="TextBox"
+               BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+
+        <Style x:Key="CompactComboBoxStyle"
+               TargetType="ComboBox"
+               BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+
+        <Style x:Key="SidebarSectionLabelStyle"
+               TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.8" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style x:Key="SidebarListStyle"
+               TargetType="ListBox">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <Style x:Key="SidebarListBoxItemStyle"
+               TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBorder"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10,7">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource CardTintBrush}" />
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource SelectionBrush}" />
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="MetricBorderStyle"
+               TargetType="Border"
+               BasedOn="{StaticResource CardBorderStyle}">
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardBorderStyle}"
+                Padding="14,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Border Width="34"
+                            Height="34"
+                            CornerRadius="8"
+                            Background="{StaticResource AccentSoftBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1">
+                        <TextBlock Text="SI"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold"
+                                   FontSize="13" />
+                    </Border>
+
+                    <StackPanel Margin="10,0,0,0"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="Inventory"
+                                   FontSize="22"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="Capital Air stock workspace"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   FontSize="12.2" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <TextBlock Text="Overview"
+                               VerticalAlignment="Center"
+                               Margin="0,0,18,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="13" />
+                    <TextBlock Text="Operations"
+                               VerticalAlignment="Center"
+                               Margin="0,0,18,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="13" />
+                    <Border Background="{StaticResource AccentSoftBrush}"
+                            BorderBrush="{StaticResource AccentBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="10,5"
+                            Margin="0,0,18,0">
+                        <TextBlock Text="Products"
+                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                   FontSize="13"
+                                   FontWeight="SemiBold" />
+                    </Border>
+                    <TextBlock Text="Reporting"
+                               VerticalAlignment="Center"
+                               Margin="0,0,18,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="13" />
+                    <TextBlock Text="Configuration"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="13" />
+                </StackPanel>
+
+                <Border Grid.Column="3"
+                        Background="{StaticResource CardTintBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="10,6"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ActiveInventoryViewTitle}"
+                               FontSize="12.5"
+                               FontWeight="SemiBold" />
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,12"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="12,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="260" />
+                </Grid.ColumnDefinitions>
+
+                <WrapPanel Orientation="Horizontal"
+                           VerticalAlignment="Center">
+                    <Button Content="Receive Stock"
+                            Width="128"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource CompactPrimaryButtonStyle}"
+                            Click="OnOpenReceiveStock" />
+                    <Button Content="Issue Out"
+                            Width="108"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Command="{Binding OpenIssueOutPanelCommand}" />
+                    <Button Content="Recent Movements"
+                            Width="142"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Click="OnOpenRecentMovements" />
+                    <Button Content="{Binding SidebarToggleButtonText}"
+                            Width="112"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Command="{Binding ToggleSidebarCommand}" />
+                    <Button Content="{Binding MovementPanelToggleButtonText}"
+                            Width="128"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Command="{Binding ToggleMovementPanelCommand}" />
+                    <Button Content="Refresh"
+                            Width="96"
+                            Margin="0,0,8,0"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Command="{Binding RefreshInventoryCommand}" />
+                    <Button Content="Back to Menu"
+                            Width="116"
+                            Margin="0,0,10,0"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Click="OnCloseWindow" />
+
+                    <Border Background="{StaticResource AccentSoftBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="10,7"
+                            Margin="0,0,8,0">
+                        <TextBlock Text="{Binding VisibleItemCount, StringFormat={}{0} visible}" 
+                                   FontSize="12.2"
+                                   FontWeight="SemiBold" />
+                    </Border>
+
+                    <Border Background="{StaticResource CardTintBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="10,7">
+                        <TextBlock Text="{Binding TotalStockOnHand, StringFormat={}{0} total units}" 
+                                   FontSize="12.2"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </Border>
+                </WrapPanel>
+
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="Search Inventory"
+                               Style="{StaticResource FieldLabelStyle}" />
+                    <TextBox Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource CompactTextBoxStyle}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Margin="14,12,14,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="Inventory Stock List"
+                                       FontSize="18"
+                                       FontWeight="Bold" />
+                            <TextBlock Text="{Binding ActiveInventoryViewSubtitle}"
+                                       Margin="0,4,0,0"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       FontSize="12.2"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <Border Background="{StaticResource AccentSoftBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10,7"
+                                    Margin="0,0,8,0">
+                                <TextBlock Text="{Binding ActiveInventoryViewTitle}"
+                                           FontSize="12.2"
+                                           FontWeight="SemiBold" />
+                            </Border>
+
+                            <Border Background="{StaticResource CardTintBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10,7">
+                                <TextBlock Text="{Binding VisibleItemCount, StringFormat={}{0} rows}"
+                                           FontSize="12.2"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <DataGrid Grid.Row="1"
+                              Margin="14,0,14,14"
+                              ItemsSource="{Binding FilteredInventoryItems}"
+                              SelectedItem="{Binding SelectedItem}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              FontSize="12.5"
+                              RowHeight="34"
+                              ColumnHeaderHeight="36">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Code"
+                                                Binding="{Binding ItemCode}"
+                                                Width="140" />
+                            <DataGridTextColumn Header="Product"
+                                                Binding="{Binding ProductDisplay}"
+                                                Width="2.1*" />
+                            <DataGridTextColumn Header="Category"
+                                                Binding="{Binding Category}"
+                                                Width="1.2*" />
+                            <DataGridTextColumn Header="Description"
+                                                Binding="{Binding Description}"
+                                                Width="2.4*" />
+                            <DataGridTextColumn Header="Type"
+                                                Binding="{Binding TrackingTypeDisplay}"
+                                                Width="1.0*" />
+                            <DataGridTextColumn Header="On Hand"
+                                                Binding="{Binding QuantityOnHand}"
+                                                Width="100" />
+                            <DataGridTextColumn Header="Status"
+                                                Binding="{Binding StockStateDisplay}"
+                                                Width="120" />
+                            <DataGridTextColumn Header="Updated"
+                                                Binding="{Binding LastUpdatedDisplay}"
+                                                Width="150" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1"
+                    Margin="0,12,0,0"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="12,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.05*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="0.95*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Background="{StaticResource CardTintBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="10,8">
+                        <TextBlock Text="{Binding SelectedItemDisplay}"
+                                   FontSize="12.4"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                    </Border>
+
+                    <Border Grid.Column="2"
+                            Background="{StaticResource AccentSoftBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="10,8">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border Width="272"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Stretch"
+                    Panel.ZIndex="2"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="0"
+                    Visibility="{Binding IsSidebarOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <DockPanel LastChildFill="True">
+                    <Border DockPanel.Dock="Top"
+                            Background="{StaticResource CardTintBrush}"
+                            BorderBrush="{StaticResource DividerBrush}"
+                            BorderThickness="0,0,0,1"
+                            Padding="12,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <TextBlock Text="Inventory Views"
+                                           FontSize="16"
+                                           FontWeight="Bold" />
+                                <TextBlock Text="Switch between stock views and categories."
+                                           Margin="0,4,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           FontSize="12.2"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <Button Grid.Column="1"
+                                    Content="Close"
+                                    Width="72"
+                                    Style="{StaticResource CompactButtonStyle}"
+                                    Command="{Binding CloseSidebarCommand}" />
+                        </Grid>
+                    </Border>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="12">
+                            <TextBlock Text="VIEWS"
+                                       Style="{StaticResource SidebarSectionLabelStyle}" />
+
+                            <ListBox ItemsSource="{Binding QuickFilters}"
+                                     SelectedItem="{Binding SelectedQuickFilter}"
+                                     Style="{StaticResource SidebarListStyle}"
+                                     ItemContainerStyle="{StaticResource SidebarListBoxItemStyle}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="12.8" />
+                                            <Border Grid.Column="1"
+                                                    Background="White"
+                                                    BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="8"
+                                                    Padding="7,2"
+                                                    Margin="8,0,0,0">
+                                                <TextBlock Text="{Binding CountDisplay}"
+                                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                                           FontSize="11.8" />
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <TextBlock Text="CATEGORIES"
+                                       Style="{StaticResource SidebarSectionLabelStyle}"
+                                       Margin="0,12,0,6" />
+
+                            <ListBox ItemsSource="{Binding CategoryFilters}"
+                                     SelectedItem="{Binding SelectedCategoryFilter}"
+                                     Style="{StaticResource SidebarListStyle}"
+                                     ItemContainerStyle="{StaticResource SidebarListBoxItemStyle}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="12.8"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Border Grid.Column="1"
+                                                    Background="White"
+                                                    BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="8"
+                                                    Padding="7,2"
+                                                    Margin="8,0,0,0">
+                                                <TextBlock Text="{Binding CountDisplay}"
+                                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                                           FontSize="11.8" />
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <Border Width="372"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Stretch"
+                    Panel.ZIndex="2"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="0"
+                    Visibility="{Binding IsMovementPanelOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <DockPanel LastChildFill="True">
+                    <Border DockPanel.Dock="Top"
+                            Background="{StaticResource CardTintBrush}"
+                            BorderBrush="{StaticResource DividerBrush}"
+                            BorderThickness="0,0,0,1"
+                            Padding="12,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <TextBlock Text="Stock Movement"
+                                           FontSize="16"
+                                           FontWeight="Bold" />
+                                <TextBlock Text="Receive more stock into an existing line or issue stock from the selected row."
+                                           Margin="0,4,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           FontSize="12.2"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <Button Grid.Column="1"
+                                    Content="Close"
+                                    Width="72"
+                                    Style="{StaticResource CompactButtonStyle}"
+                                    Command="{Binding CloseMovementPanelCommand}" />
+                        </Grid>
+                    </Border>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="12">
+                            <TextBlock Text="Selected Item"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <Border Background="{StaticResource CardTintBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10,8">
+                                <TextBlock Text="{Binding SelectedItemDisplay}"
+                                           FontSize="12.5"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <TextBlock Text="{Binding SelectedItemHelpText}"
+                                       Margin="0,8,0,0"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock Text="Movement Type"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,12,0,6" />
+                            <ComboBox ItemsSource="{Binding MovementTypes}"
+                                      SelectedItem="{Binding SelectedMovementType}"
+                                      Style="{StaticResource CompactComboBoxStyle}" />
+
+                            <TextBlock Text="Quantity"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,12,0,6" />
+                            <TextBox Text="{Binding MovementQuantityText, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource CompactTextBoxStyle}" />
+
+                            <TextBlock Text="Job Card"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,12,0,6" />
+                            <ComboBox ItemsSource="{Binding JobCardOptions}"
+                                      SelectedItem="{Binding SelectedJobCard}"
+                                      DisplayMemberPath="DisplayText"
+                                      IsTextSearchEnabled="True"
+                                      Style="{StaticResource CompactComboBoxStyle}" />
+
+                            <Border Margin="0,12,0,0"
+                                    Background="{StaticResource AccentSoftBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10,8">
+                                <TextBlock Text="{Binding JobCardRequirementText}"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <Border Margin="0,12,0,0"
+                                    Background="{StaticResource CardTintBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10,10"
+                                    Visibility="{Binding ShowTrackingUnitStockInSection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="Tracking Unit Details"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{Binding TrackingUnitStockInHelpText}"
+                                               Margin="0,2,0,8"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               FontSize="11.8"
+                                               TextWrapping="Wrap" />
+
+                                    <ItemsControl ItemsSource="{Binding TrackingUnitStockInEntries}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,0,0,8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="78" />
+                                                        <ColumnDefinition Width="10" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="10" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <Border Background="{StaticResource AccentSoftBrush}"
+                                                            BorderBrush="{StaticResource BorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="8"
+                                                            Padding="8,6">
+                                                        <TextBlock Text="{Binding UnitLabel}"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold" />
+                                                    </Border>
+
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Serial"
+                                                                   Style="{StaticResource FieldLabelStyle}" />
+                                                        <TextBox Text="{Binding SerialNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                                 Style="{StaticResource CompactTextBoxStyle}" />
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="4">
+                                                        <TextBlock Text="IMEI"
+                                                                   Style="{StaticResource FieldLabelStyle}" />
+                                                        <TextBox Text="{Binding ImeiNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                                 Style="{StaticResource CompactTextBoxStyle}" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Margin="0,12,0,0"
+                                    Background="{StaticResource CardTintBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10,10"
+                                    Visibility="{Binding ShowTrackingUnitStockOutSection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="Available Tracking Units"
+                                               Style="{StaticResource FieldLabelStyle}" />
+                                    <TextBlock Text="{Binding TrackingUnitStockOutHelpText}"
+                                               Margin="0,2,0,6"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               FontSize="11.8"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding SelectedTrackingUnitCountText}"
+                                               Margin="0,0,0,8"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               FontSize="11.8" />
+
+                                    <ItemsControl ItemsSource="{Binding AvailableTrackingUnits}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="White"
+                                                        BorderBrush="{StaticResource BorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="8"
+                                                        Padding="10,8"
+                                                        Margin="0,0,0,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="10" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <CheckBox IsChecked="{Binding IsSelected}"
+                                                                  VerticalAlignment="Top" />
+
+                                                        <StackPanel Grid.Column="2">
+                                                            <TextBlock Text="{Binding SerialNumber}"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="12.3" />
+                                                            <TextBlock Text="{Binding ImeiNumber}"
+                                                                       Margin="0,2,0,0"
+                                                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                                                       FontSize="11.8" />
+                                                            <TextBlock Text="{Binding ReceivedAtDisplay}"
+                                                                       Margin="0,2,0,0"
+                                                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                                                       FontSize="11.2" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="Notes"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       Margin="0,12,0,6" />
+                            <TextBox Text="{Binding MovementNotes, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource CompactTextBoxStyle}"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     Height="88"
+                                     VerticalScrollBarVisibility="Auto" />
+
+                            <Button Content="Record Movement"
+                                    Margin="0,14,0,0"
+                                    Style="{StaticResource CompactPrimaryButtonStyle}"
+                                    Command="{Binding RecordMovementCommand}" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

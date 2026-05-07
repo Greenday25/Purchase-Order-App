@@ -342,6 +342,7 @@ namespace PurchaseOrderApp.ViewModels
         {
             using var db = new PurchaseOrderContext();
             EnsureDatabaseSchema(db);
+            var inventoryService = new InventoryService();
 
             var order = db.PurchaseOrders
                 .AsNoTracking()
@@ -353,6 +354,19 @@ namespace PurchaseOrderApp.ViewModels
             {
                 return null;
             }
+
+            var linkedReceipts = inventoryService.GetPurchaseOrderReceiptLines(orderId)
+                .Select(receipt => new OrderReceiptItemViewModel
+                {
+                    ReceiptNumber = receipt.ReceiptNumber,
+                    ReceivedAt = receipt.ReceivedAt,
+                    SupplierName = receipt.SupplierName,
+                    ItemCode = receipt.ItemCode,
+                    ItemName = receipt.ItemName,
+                    Quantity = receipt.Quantity,
+                    Notes = receipt.Notes ?? string.Empty
+                })
+                .ToList();
 
             return new OrderDetailsViewModel
             {
@@ -377,6 +391,7 @@ namespace PurchaseOrderApp.ViewModels
                 IsApproved = order.ManagerApprovedAt.HasValue || order.DirectorApprovedAt.HasValue,
                 IsRejected = order.RejectedAt.HasValue,
                 IsCompleted = !string.IsNullOrWhiteSpace(order.InvoiceFileName),
+                LinkedReceipts = new ObservableCollection<OrderReceiptItemViewModel>(linkedReceipts),
                 Lines = new ObservableCollection<OrderDetailsLineItem>(
                     order.Lines.Select(line => new OrderDetailsLineItem
                     {

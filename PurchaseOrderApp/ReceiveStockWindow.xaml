@@ -1,0 +1,508 @@
+<Window x:Class="PurchaseOrderApp.ReceiveStockWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Receive Stock"
+        Height="820"
+        Width="1320"
+        MinHeight="760"
+        MinWidth="1180"
+        WindowStartupLocation="CenterOwner">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+        <Style x:Key="CompactTextBoxStyle"
+               TargetType="TextBox"
+               BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+
+        <Style x:Key="CompactComboBoxStyle"
+               TargetType="ComboBox"
+               BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="7,4" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+
+        <Style x:Key="CompactButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="FontSize" Value="12.5" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource CardBorderStyle}"
+                Background="{StaticResource HeroBackgroundBrush}"
+                Padding="14,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="250" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="RECEIVE STOCK"
+                               FontSize="22"
+                               FontWeight="Bold" />
+                    <TextBlock Text="Capture one goods receipt with multiple items, suppliers, and optional purchase-order links."
+                               Margin="0,4,0,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="12.5"
+                               TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding InventoryFocusText}"
+                               Margin="0,4,0,0"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               FontSize="12.5"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Background="#FFFFFFCC"
+                        BorderBrush="#FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="14"
+                        Padding="14,12"
+                        Margin="16,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Receipt Number"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="{Binding ReceiptNumberPreview}"
+                                   Margin="0,6,0,0"
+                                   FontSize="20"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="{Binding ReceiptSummaryText}"
+                                   Margin="0,8,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1"
+              Margin="0,12,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.05*" />
+                <ColumnDefinition Width="14" />
+                <ColumnDefinition Width="1.45*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Text="Receipt Lines"
+                                       Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="Add as many stock lines as needed, even if the supplier or item changes."
+                                       Margin="0,5,0,0"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       FontSize="12.5"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <Button Content="Add Line"
+                                    Width="92"
+                                    Margin="0,0,8,0"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    Padding="14,7"
+                                    FontSize="12.5"
+                                    Command="{Binding AddLineCommand}" />
+                            <Button Content="Remove Line"
+                                    Width="108"
+                                    Style="{StaticResource CompactButtonStyle}"
+                                    Command="{Binding RemoveSelectedLineCommand}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <DataGrid Grid.Row="1"
+                              Margin="0,14,0,14"
+                              ItemsSource="{Binding ReceiptLines}"
+                              SelectedItem="{Binding SelectedLine}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              FontSize="12.4"
+                              RowHeight="34"
+                              ColumnHeaderHeight="36">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Line"
+                                                Binding="{Binding LineLabel}"
+                                                Width="78" />
+                            <DataGridTextColumn Header="Supplier"
+                                                Binding="{Binding SummarySupplierDisplay}"
+                                                Width="1.3*" />
+                            <DataGridTextColumn Header="Item"
+                                                Binding="{Binding SummaryItemDisplay}"
+                                                Width="2.1*" />
+                            <DataGridTextColumn Header="Type"
+                                                Binding="{Binding SummaryTypeDisplay}"
+                                                Width="120" />
+                            <DataGridTextColumn Header="Qty"
+                                                Binding="{Binding SummaryQuantityDisplay}"
+                                                Width="100" />
+                            <DataGridTextColumn Header="PO Link"
+                                                Binding="{Binding SummaryPurchaseOrderDisplay}"
+                                                Width="130" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <StackPanel Grid.Row="2">
+                        <TextBlock Text="Receipt Notes"
+                                   Style="{StaticResource FieldLabelStyle}" />
+                        <TextBox Text="{Binding ReceiptNotes, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource CompactTextBoxStyle}"
+                                 AcceptsReturn="True"
+                                 Height="76"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Text="Selected Receipt Line"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="{Binding SelectedLineDisplay}"
+                                   Margin="0,5,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   FontSize="12.5"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1"
+                                  Margin="0,14,0,0"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <ContentControl Content="{Binding SelectedLine}">
+                            <ContentControl.ContentTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="14" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Stock Type"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <ComboBox ItemsSource="{Binding StockTemplates}"
+                                                          SelectedItem="{Binding SelectedTemplate}"
+                                                          DisplayMemberPath="DisplayText"
+                                                          Style="{StaticResource CompactComboBoxStyle}" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Quantity Received"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBox Text="{Binding QuantityText, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CompactTextBoxStyle}" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid Margin="0,10,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="14" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Supplier"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <ComboBox ItemsSource="{Binding SupplierSuggestions}"
+                                                          Text="{Binding SupplierName, UpdateSourceTrigger=PropertyChanged}"
+                                                          IsEditable="True"
+                                                          IsTextSearchEnabled="True"
+                                                          Style="{StaticResource CompactComboBoxStyle}" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Purchase Order Link"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="94" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <ComboBox ItemsSource="{Binding PurchaseOrderOptions}"
+                                                              SelectedItem="{Binding SelectedPurchaseOrder}"
+                                                              DisplayMemberPath="DisplayText"
+                                                              Style="{StaticResource CompactComboBoxStyle}" />
+                                                    <Button Grid.Column="1"
+                                                            Content="Clear Link"
+                                                            Margin="8,0,0,0"
+                                                            Style="{StaticResource CompactButtonStyle}"
+                                                            Command="{Binding ClearPurchaseOrderLinkCommand}" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid Margin="0,10,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="14" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Item Code"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBox Text="{Binding ItemCode, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CompactTextBoxStyle}" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Item Name"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBox Text="{Binding ItemName, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CompactTextBoxStyle}" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Grid Margin="0,10,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="14" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding UsesAutomaticCategory}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <TextBlock Text="Category"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <ComboBox ItemsSource="{Binding CategoryOptions}"
+                                                          Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}"
+                                                          IsEditable="True"
+                                                          IsTextSearchEnabled="True"
+                                                          Style="{StaticResource CompactComboBoxStyle}" />
+                                            </StackPanel>
+
+                                            <Border Grid.Column="0"
+                                                    Background="{StaticResource AccentSoftBrush}"
+                                                    BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="10"
+                                                    Padding="10,8"
+                                                    Visibility="{Binding UsesAutomaticCategory, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock Text="{Binding AutomaticCategoryText}"
+                                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap" />
+                                            </Border>
+
+                                            <Border Grid.Column="2"
+                                                    Background="{StaticResource CardTintBrush}"
+                                                    BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="10"
+                                                    Padding="10,8">
+                                                <StackPanel>
+                                                    <CheckBox Content="Tracking unit item"
+                                                              IsChecked="{Binding IsTrackingUnit}"
+                                                              IsEnabled="{Binding CanEditTrackingUnitFlag}"
+                                                              FontSize="12.5" />
+                                                    <TextBlock Text="{Binding TrackingUnitHelpText}"
+                                                               Margin="22,4,0,0"
+                                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                                               FontSize="11.5"
+                                                               TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <Grid Margin="0,10,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="14" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Description"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CompactTextBoxStyle}"
+                                                         AcceptsReturn="True"
+                                                         Height="78"
+                                                         TextWrapping="Wrap"
+                                                         VerticalScrollBarVisibility="Auto" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Line Notes"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                                                         Style="{StaticResource CompactTextBoxStyle}"
+                                                         AcceptsReturn="True"
+                                                         Height="78"
+                                                         TextWrapping="Wrap"
+                                                         VerticalScrollBarVisibility="Auto" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Border Margin="0,10,0,0"
+                                                Background="{StaticResource CardTintBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="10"
+                                                Padding="10,10"
+                                                Visibility="{Binding ShowTrackingUnitIdentitySection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <StackPanel>
+                                                <TextBlock Text="Tracking Unit Identities"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBlock Text="Enter the serial number and IMEI for each tracking unit on this receipt line."
+                                                           Margin="0,2,0,8"
+                                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                                           FontSize="11.8"
+                                                           TextWrapping="Wrap" />
+
+                                                <ItemsControl ItemsSource="{Binding TrackingUnitEntries}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,0,0,8">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="90" />
+                                                                    <ColumnDefinition Width="12" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="12" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <Border Background="{StaticResource AccentSoftBrush}"
+                                                                        BorderBrush="{StaticResource BorderBrush}"
+                                                                        BorderThickness="1"
+                                                                        CornerRadius="8"
+                                                                        Padding="8,6">
+                                                                    <TextBlock Text="{Binding UnitLabel}"
+                                                                               FontSize="12"
+                                                                               FontWeight="SemiBold" />
+                                                                </Border>
+
+                                                                <StackPanel Grid.Column="2">
+                                                                    <TextBlock Text="Serial Number"
+                                                                               Style="{StaticResource FieldLabelStyle}" />
+                                                                    <TextBox Text="{Binding SerialNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                                             Style="{StaticResource CompactTextBoxStyle}" />
+                                                                </StackPanel>
+
+                                                                <StackPanel Grid.Column="4">
+                                                                    <TextBlock Text="IMEI Number"
+                                                                               Style="{StaticResource FieldLabelStyle}" />
+                                                                    <TextBox Text="{Binding ImeiNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                                             Style="{StaticResource CompactTextBoxStyle}" />
+                                                                </StackPanel>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Margin="0,10,0,0"
+                                                Background="{StaticResource AccentSoftBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="10"
+                                                Padding="10,8">
+                                            <TextBlock Text="Use the same receipt for multiple suppliers or purchase orders. Each line will still book its own stock movement and keep its own link."
+                                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                                       FontSize="11.8"
+                                                       TextWrapping="Wrap" />
+                                        </Border>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ContentControl.ContentTemplate>
+                        </ContentControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="2"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="12,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="{Binding StatusMessage}"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource SecondaryTextBrush}"
+                           FontSize="12.2"
+                           TextWrapping="Wrap"
+                           Margin="0,0,16,0" />
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Button Content="Cancel"
+                            Width="92"
+                            Margin="0,0,10,0"
+                            Style="{StaticResource CompactButtonStyle}"
+                            Click="OnCloseWindow" />
+                    <Button Content="Create Receipt"
+                            Width="138"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Padding="14,7"
+                            FontSize="12.5"
+                            Click="OnReceiveStock" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

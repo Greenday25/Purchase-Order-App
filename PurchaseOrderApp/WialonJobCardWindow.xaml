@@ -296,6 +296,9 @@
                         <DataGridTextColumn Header="Wialon Unit"
                                             Binding="{Binding UnitDisplay}"
                                             Width="1.3*" />
+                        <DataGridTextColumn Header="Issued Stock"
+                                            Binding="{Binding InventoryIssueSummary}"
+                                            Width="1.2*" />
                         <DataGridTextColumn Header="Notes"
                                             Binding="{Binding StatusNotes}"
                                             Width="1.7*" />

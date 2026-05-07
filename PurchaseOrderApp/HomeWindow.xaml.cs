@@ -41,6 +41,12 @@ public partial class HomeWindow : Window
         trackingCertificateWindow.Show();
     }
 
+    private void OnOpenInventory(object sender, RoutedEventArgs e)
+    {
+        var inventoryWindow = new InventoryWindow();
+        inventoryWindow.Show();
+    }
+
     private async void OnOpenConnectivitySettings(object sender, RoutedEventArgs e)
     {
         var settingsWindow = new ConnectivitySettingsWindow

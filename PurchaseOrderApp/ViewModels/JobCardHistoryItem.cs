@@ -20,6 +20,8 @@ public sealed class JobCardHistoryItem
 
     public long? WialonUnitId { get; init; }
 
+    public string InventoryIssueSummary { get; init; } = "Not linked";
+
     public string StatusNotes { get; init; } = string.Empty;
 
     public string CreatedAtDisplay => CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");

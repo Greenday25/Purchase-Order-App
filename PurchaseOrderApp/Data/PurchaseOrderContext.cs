@@ -9,6 +9,11 @@ namespace PurchaseOrderApp.Data
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
         public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; }
         public DbSet<JobCardRecord> JobCards { get; set; }
+        public DbSet<InventoryItem> InventoryItems { get; set; }
+        public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
+        public DbSet<InventoryTrackingUnit> InventoryTrackingUnits { get; set; }
+        public DbSet<InventoryReceipt> InventoryReceipts { get; set; }
+        public DbSet<InventoryReceiptLine> InventoryReceiptLines { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -25,6 +30,43 @@ namespace PurchaseOrderApp.Data
             modelBuilder.Entity<PurchaseOrder>().HasOne(po => po.Vendor).WithMany(v => v.PurchaseOrders).HasForeignKey(po => po.VendorId);
             modelBuilder.Entity<JobCardRecord>().HasIndex(record => record.SequenceNumber).IsUnique();
             modelBuilder.Entity<JobCardRecord>().HasIndex(record => record.JobCardNumber).IsUnique();
+            modelBuilder.Entity<InventoryItem>().HasIndex(item => item.ItemCode).IsUnique();
+            modelBuilder.Entity<InventoryItem>()
+                .HasMany(item => item.Transactions)
+                .WithOne(transaction => transaction.InventoryItem)
+                .HasForeignKey(transaction => transaction.InventoryItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<InventoryTransaction>().HasIndex(transaction => transaction.JobCardRecordId);
+            modelBuilder.Entity<InventoryTransaction>().HasIndex(transaction => transaction.IssueOutNumber).IsUnique();
+            modelBuilder.Entity<InventoryTrackingUnit>().HasIndex(unit => unit.SerialNumber).IsUnique();
+            modelBuilder.Entity<InventoryTrackingUnit>().HasIndex(unit => unit.ImeiNumber).IsUnique();
+            modelBuilder.Entity<InventoryTrackingUnit>().HasIndex(unit => unit.InventoryItemId);
+            modelBuilder.Entity<InventoryTrackingUnit>().HasIndex(unit => unit.IsIssued);
+            modelBuilder.Entity<InventoryTrackingUnit>()
+                .HasOne(unit => unit.InventoryItem)
+                .WithMany(item => item.TrackingUnits)
+                .HasForeignKey(unit => unit.InventoryItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<InventoryReceipt>().HasIndex(receipt => receipt.ReceiptNumber).IsUnique();
+            modelBuilder.Entity<InventoryReceipt>()
+                .HasMany(receipt => receipt.Lines)
+                .WithOne(line => line.InventoryReceipt)
+                .HasForeignKey(line => line.InventoryReceiptId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<InventoryReceiptLine>().HasIndex(line => line.ReceiptNumber);
+            modelBuilder.Entity<InventoryReceiptLine>().HasIndex(line => line.InventoryItemId);
+            modelBuilder.Entity<InventoryReceiptLine>().HasIndex(line => line.InventoryTransactionId);
+            modelBuilder.Entity<InventoryReceiptLine>().HasIndex(line => line.PurchaseOrderId);
+            modelBuilder.Entity<InventoryReceiptLine>()
+                .HasOne(line => line.InventoryItem)
+                .WithMany()
+                .HasForeignKey(line => line.InventoryItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<InventoryReceiptLine>()
+                .HasOne(line => line.InventoryTransaction)
+                .WithMany()
+                .HasForeignKey(line => line.InventoryTransactionId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -16,11 +16,15 @@ namespace PurchaseOrderApp.ViewModels
         public string RejectionStatus { get; init; } = "Active";
         public decimal TotalAmount { get; init; }
         public ObservableCollection<OrderDetailsLineItem> Lines { get; init; } = [];
+        public ObservableCollection<OrderReceiptItemViewModel> LinkedReceipts { get; init; } = [];
         public string SignedOrderFileName { get; init; } = "Not Uploaded";
         public string InvoiceFileName { get; init; } = "Not Uploaded";
         public bool IsApproved { get; init; }
         public bool IsRejected { get; init; }
         public bool IsCompleted { get; init; }
+        public int LinkedReceiptCount => LinkedReceipts.Count;
+        public int LinkedReceiptQuantity => LinkedReceipts.Sum(item => item.Quantity);
+        public bool HasLinkedReceipts => LinkedReceipts.Count > 0;
         public bool HasSignedOrder => !string.Equals(SignedOrderFileName, "Not Uploaded", StringComparison.OrdinalIgnoreCase);
         public bool HasInvoice => !string.Equals(InvoiceFileName, "Not Uploaded", StringComparison.OrdinalIgnoreCase);
         public bool CanDelete => !IsCompleted;
