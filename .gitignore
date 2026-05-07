@@ -17,3 +17,4 @@ PurchaseOrderApp/purchaseorders.db*
 # Local build and template extraction artifacts
 *.lscache
 _template_extract/
+.buildcheck/

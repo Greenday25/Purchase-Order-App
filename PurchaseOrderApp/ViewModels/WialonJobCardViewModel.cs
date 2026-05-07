@@ -18,6 +18,7 @@ public partial class WialonJobCardViewModel : ObservableObject
         "Recovery Controller"
     };
     private readonly JobCardRegistryService jobCardRegistryService = new();
+    private readonly InventoryService inventoryService = new();
     private readonly JobCardSecretStore secretStore = new();
     private string? currentSessionId;
     private long? creatorId;
@@ -657,9 +658,13 @@ public partial class WialonJobCardViewModel : ObservableObject
         {
             jobCardRegistryService.EnsureSchema();
             NextJobCardNumber = jobCardRegistryService.GetNextJobCardNumber().JobCardNumber;
-
-            var historyItems = jobCardRegistryService
+            var records = jobCardRegistryService
                 .GetRecentJobCards()
+                .ToList();
+            var inventoryIssueSummaries = inventoryService.GetJobCardIssueSummaries(
+                records.Select(record => record.JobCardRecordId));
+
+            var historyItems = records
                 .Select(record => new JobCardHistoryItem
                 {
                     JobCardRecordId = record.JobCardRecordId,
@@ -671,6 +676,9 @@ public partial class WialonJobCardViewModel : ObservableObject
                     Client = record.Client,
                     WialonUnitName = record.WialonUnitName,
                     WialonUnitId = record.WialonUnitId,
+                    InventoryIssueSummary = inventoryIssueSummaries.TryGetValue(record.JobCardRecordId, out var summary)
+                        ? summary.DisplayText
+                        : "Not linked",
                     StatusNotes = record.StatusNotes ?? string.Empty
                 })
                 .ToList();

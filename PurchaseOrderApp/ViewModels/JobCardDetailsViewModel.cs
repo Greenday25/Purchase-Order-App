@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using PurchaseOrderApp.Models;
 using PurchaseOrderApp.Services;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Windows.Media.Imaging;
@@ -13,6 +14,7 @@ internal sealed partial class JobCardDetailsViewModel : ObservableObject
     private readonly JobCardRegistryService jobCardRegistryService = new();
     private readonly JobCardEvidenceService jobCardEvidenceService = new();
     private readonly JobCardPdfService jobCardPdfService = new();
+    private readonly InventoryService inventoryService = new();
     private JobCardRecord? currentRecord;
 
     public JobCardDetailsViewModel(int jobCardRecordId)
@@ -140,6 +142,12 @@ internal sealed partial class JobCardDetailsViewModel : ObservableObject
     private string billingTotalExVatDisplay = "0.00 ex VAT";
 
     [ObservableProperty]
+    private ObservableCollection<JobCardInventoryIssueItem> inventoryIssues = [];
+
+    [ObservableProperty]
+    private string inventoryIssueSummary = "No stock linked yet.";
+
+    [ObservableProperty]
     private BitmapImage? vehiclePhotoPreview;
 
     [ObservableProperty]
@@ -215,6 +223,7 @@ internal sealed partial class JobCardDetailsViewModel : ObservableObject
         StatusNotes = string.IsNullOrWhiteSpace(currentRecord.StatusNotes) ? "None" : currentRecord.StatusNotes;
         AmendmentNotes = string.IsNullOrWhiteSpace(currentRecord.AmendmentNotes) ? "None" : currentRecord.AmendmentNotes;
         GeneratedPdfPath = jobCardEvidenceService.GetPdfPath(currentRecord.JobCardNumber);
+        LoadInventoryIssues();
 
         VehiclePhotoPreview = LoadPhotoPreview(JobCardEvidencePhotoType.Vehicle);
         RegistrationPhotoPreview = LoadPhotoPreview(JobCardEvidencePhotoType.Registration);
@@ -346,6 +355,40 @@ internal sealed partial class JobCardDetailsViewModel : ObservableObject
             : "Pending";
 
         return $"{uploadedCount} / 4 evidence photos uploaded. Evidence received: {uploadedAt}.";
+    }
+
+    private void LoadInventoryIssues()
+    {
+        if (currentRecord is null)
+        {
+            InventoryIssues = [];
+            InventoryIssueSummary = "No stock linked yet.";
+            return;
+        }
+
+        var rawIssues = inventoryService.GetJobCardIssues(jobCardRecordId);
+        var issues = rawIssues
+            .Select(issue => new JobCardInventoryIssueItem
+            {
+                CreatedAtDisplay = issue.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"),
+                IssueOutNumberDisplay = string.IsNullOrWhiteSpace(issue.IssueOutNumber) ? "Issue #: -" : $"Issue #: {issue.IssueOutNumber}",
+                ItemDisplay = string.IsNullOrWhiteSpace(issue.ItemCode)
+                    ? issue.ItemName
+                    : $"{issue.ItemCode} - {issue.ItemName}",
+                QuantityDisplay = $"x{issue.Quantity}",
+                NotesDisplay = string.IsNullOrWhiteSpace(issue.Notes) ? "No notes" : issue.Notes
+            })
+            .ToList();
+
+        InventoryIssues = new ObservableCollection<JobCardInventoryIssueItem>(issues);
+        if (issues.Count == 0)
+        {
+            InventoryIssueSummary = "No stock has been issued against this job card yet.";
+            return;
+        }
+
+        var totalQuantity = rawIssues.Sum(issue => issue.Quantity);
+        InventoryIssueSummary = $"{issues.Count} linked stock issue(s), {totalQuantity} unit(s) issued.";
     }
 
     private static string BuildEntityDisplay(string? name, long? id)

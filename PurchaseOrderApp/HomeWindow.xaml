@@ -21,13 +21,15 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
         <Border Style="{StaticResource HeroCardStyle}">
             <Grid>
@@ -75,7 +77,7 @@
                         <TextBlock Text="Pick a tile below"
                                    Margin="0,8,0,0"
                                    FontWeight="Bold" />
-                        <TextBlock Text="The purchase order dashboard, Wialon units, and job cards open in their own windows."
+                        <TextBlock Text="The purchase order dashboard, Wialon units, job cards, and inventory open in their own windows."
                                    Margin="0,6,0,0"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    TextWrapping="Wrap"
@@ -138,10 +140,10 @@
             </Grid>
         </Border>
 
-        <UniformGrid Grid.Row="2"
-                     Margin="0,22,0,22"
-                     Columns="2"
-                     Rows="2">
+            <UniformGrid Grid.Row="2"
+                         Margin="0,22,0,22"
+                         Columns="2"
+                         Rows="3">
             <Button Style="{StaticResource TileButtonStyle}"
                     Margin="0,0,12,12"
                     Click="OnOpenPurchaseOrders">
@@ -401,12 +403,78 @@
                     </Grid>
                 </Border>
             </Button>
-        </UniformGrid>
 
-        <TextBlock Grid.Row="3"
-                   Text="Completed orders are archived automatically when the signed order and invoice are present."
-                   Foreground="{StaticResource SecondaryTextBrush}"
-                   HorizontalAlignment="Center"
-                   Margin="0,0,0,6" />
-    </Grid>
+                <Button Style="{StaticResource TileButtonStyle}"
+                        Margin="0,12,12,0"
+                        Background="{StaticResource CardBackgroundBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        Click="OnOpenInventory">
+                    <Border Background="{StaticResource CardBackgroundBrush}"
+                            CornerRadius="18"
+                            Padding="28"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="52"
+                                        Height="52"
+                                        CornerRadius="16"
+                                        Background="#E8F5EA"
+                                        BorderBrush="#BCDCC4"
+                                        BorderThickness="1"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="SI"
+                                               Foreground="#255D30"
+                                               FontWeight="Bold"
+                                               FontSize="18"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Border>
+
+                                <StackPanel Margin="16,0,0,0">
+                                    <TextBlock Text="Stock Inventory"
+                                               FontSize="28"
+                                               FontWeight="Bold" />
+                                    <TextBlock Text="Receive and issue stock with job card links"
+                                               Foreground="{StaticResource SecondaryTextBrush}"
+                                               Margin="0,4,0,0"
+                                               FontSize="13" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="1"
+                                       Text="Open the inventory workspace to receive stock, issue stock, and force tracking unit issues to point at a specific job card."
+                                       Margin="0,24,0,0"
+                                       FontSize="17"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" />
+
+                            <Border Grid.Row="2"
+                                    Margin="0,24,0,0"
+                                    Background="#E8F5EA"
+                                    CornerRadius="12"
+                                    Padding="12,8"
+                                    HorizontalAlignment="Left">
+                                <TextBlock Text="Open module"
+                                           Foreground="#255D30"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Button>
+            </UniformGrid>
+
+            <TextBlock Grid.Row="3"
+                       Text="Completed orders are archived automatically when the signed order and invoice are present."
+                       Foreground="{StaticResource SecondaryTextBrush}"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,6" />
+        </Grid>
+    </ScrollViewer>
 </Window>

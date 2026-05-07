@@ -220,7 +220,9 @@
                     <ColumnDefinition Width="10" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="10" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="1.1*" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition Width="1.1*" />
                 </Grid.ColumnDefinitions>
 
                 <Grid>
@@ -286,6 +288,22 @@
                 </Grid>
 
                 <Grid Grid.Column="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Received Stock"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="{Binding LinkedReceiptCount, StringFormat={}{0} receipt line(s)}"
+                                   Margin="0,4,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                        <TextBlock Text="{Binding LinkedReceiptQuantity, StringFormat={}{0} unit(s) received}"
+                                   Margin="0,2,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Column="6">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="130" />
