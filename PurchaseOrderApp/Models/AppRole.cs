@@ -8,6 +8,10 @@ public class AppRole
 
     public bool CanAccessPurchaseOrders { get; set; }
 
+    public bool CanManagerApprovePurchaseOrders { get; set; }
+
+    public bool CanApprovePurchaseOrders { get; set; }
+
     public bool CanAccessJobCards { get; set; }
 
     public bool CanAccessWialonUnits { get; set; }

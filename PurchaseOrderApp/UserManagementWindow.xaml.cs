@@ -134,6 +134,8 @@ public partial class UserManagementWindow : Window
             {
                 Name = RoleNameTextBox.Text,
                 CanAccessPurchaseOrders = RolePurchaseOrdersCheckBox.IsChecked == true,
+                CanManagerApprovePurchaseOrders = RoleManagerApprovePurchaseOrdersCheckBox.IsChecked == true,
+                CanApprovePurchaseOrders = RoleApprovePurchaseOrdersCheckBox.IsChecked == true,
                 CanAccessJobCards = RoleJobCardsCheckBox.IsChecked == true,
                 CanAccessWialonUnits = RoleWialonUnitsCheckBox.IsChecked == true,
                 CanAccessTrackingCertificates = RoleTrackingCertificatesCheckBox.IsChecked == true,
@@ -209,6 +211,8 @@ public partial class UserManagementWindow : Window
     {
         RoleNameTextBox.Text = string.Empty;
         RolePurchaseOrdersCheckBox.IsChecked = false;
+        RoleManagerApprovePurchaseOrdersCheckBox.IsChecked = false;
+        RoleApprovePurchaseOrdersCheckBox.IsChecked = false;
         RoleJobCardsCheckBox.IsChecked = false;
         RoleWialonUnitsCheckBox.IsChecked = false;
         RoleTrackingCertificatesCheckBox.IsChecked = false;

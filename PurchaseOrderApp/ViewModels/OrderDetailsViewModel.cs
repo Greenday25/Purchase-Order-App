@@ -13,6 +13,8 @@ namespace PurchaseOrderApp.ViewModels
         public string Reference { get; init; } = string.Empty;
         public string OrderStatus { get; init; } = string.Empty;
         public string ApprovalStatus { get; init; } = "Pending";
+        public string ManagerApprovalStatus { get; init; } = "Pending";
+        public string DirectorApprovalStatus { get; init; } = "Pending";
         public string RejectionStatus { get; init; } = "Active";
         public decimal TotalAmount { get; init; }
         public ObservableCollection<OrderDetailsLineItem> Lines { get; init; } = [];
@@ -20,8 +22,12 @@ namespace PurchaseOrderApp.ViewModels
         public string SignedOrderFileName { get; init; } = "Not Uploaded";
         public string InvoiceFileName { get; init; } = "Not Uploaded";
         public bool IsApproved { get; init; }
+        public bool IsManagerApproved { get; init; }
+        public bool IsDirectorApproved { get; init; }
         public bool IsRejected { get; init; }
         public bool IsCompleted { get; init; }
+        public bool CanManagerApprove { get; init; }
+        public bool CanDirectorApprove { get; init; }
         public bool CanAmend { get; init; }
         public int LinkedReceiptCount => LinkedReceipts.Count;
         public int LinkedReceiptQuantity => LinkedReceipts.Sum(item => item.Quantity);

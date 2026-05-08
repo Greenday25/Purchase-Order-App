@@ -65,6 +65,24 @@ namespace PurchaseOrderApp.ViewModels
             LoadOrderHistory();
         }
 
+        public bool CanManagerApprovePurchaseOrders { get; private set; }
+
+        public bool CanApprovePurchaseOrders { get; private set; }
+
+        public string ApprovalAccessStatus =>
+            CanManagerApprovePurchaseOrders || CanApprovePurchaseOrders
+                ? "Purchase order approval access enabled."
+                : "Purchase order approval access required.";
+
+        public void SetSignedInUser(AppUser? user)
+        {
+            CanManagerApprovePurchaseOrders = user?.Role?.CanManagerApprovePurchaseOrders == true;
+            CanApprovePurchaseOrders = user?.Role?.CanApprovePurchaseOrders == true;
+            OnPropertyChanged(nameof(CanManagerApprovePurchaseOrders));
+            OnPropertyChanged(nameof(CanApprovePurchaseOrders));
+            OnPropertyChanged(nameof(ApprovalAccessStatus));
+        }
+
         private void InitializeModel()
         {
             using var db = new PurchaseOrderContext();
@@ -286,14 +304,47 @@ namespace PurchaseOrderApp.ViewModels
             LoadOrderHistory();
         }
 
-        public bool MarkApprovalsCompleted(int orderId)
+        public bool MarkManagerApproved(int orderId)
         {
+            if (!CanManagerApprovePurchaseOrders)
+            {
+                return false;
+            }
+
+            var didUpdate = false;
             return UpdateOrderWorkflow(orderId, order =>
             {
-                var approvalTime = order.ManagerApprovedAt ?? order.DirectorApprovedAt ?? DateTime.Now;
-                order.ManagerApprovedAt = approvalTime;
-                order.DirectorApprovedAt = approvalTime;
-            });
+                if (order.ManagerApprovedAt.HasValue || order.RejectedAt.HasValue || !string.IsNullOrWhiteSpace(order.InvoiceFileName))
+                {
+                    return;
+                }
+
+                order.ManagerApprovedAt = DateTime.Now;
+                didUpdate = true;
+            }) && didUpdate;
+        }
+
+        public bool MarkDirectorApproved(int orderId)
+        {
+            if (!CanApprovePurchaseOrders)
+            {
+                return false;
+            }
+
+            var didUpdate = false;
+            return UpdateOrderWorkflow(orderId, order =>
+            {
+                if (!order.ManagerApprovedAt.HasValue ||
+                    order.DirectorApprovedAt.HasValue ||
+                    order.RejectedAt.HasValue ||
+                    !string.IsNullOrWhiteSpace(order.InvoiceFileName))
+                {
+                    return;
+                }
+
+                order.DirectorApprovedAt = DateTime.Now;
+                didUpdate = true;
+            }) && didUpdate;
         }
 
         public bool MarkRejected(int orderId)
@@ -386,14 +437,27 @@ namespace PurchaseOrderApp.ViewModels
                     order.RejectedAt,
                     order.SignedOrderFileName,
                     order.InvoiceFileName),
-                ApprovalStatus = FormatWorkflowStatus(order.DirectorApprovedAt ?? order.ManagerApprovedAt, "Pending"),
+                ApprovalStatus = FormatOverallApprovalStatus(order.ManagerApprovedAt, order.DirectorApprovedAt),
+                ManagerApprovalStatus = FormatWorkflowStatus(order.ManagerApprovedAt, "Pending"),
+                DirectorApprovalStatus = FormatWorkflowStatus(order.DirectorApprovedAt, "Pending"),
                 RejectionStatus = FormatWorkflowStatus(order.RejectedAt, "Active"),
                 TotalAmount = order.Total,
                 SignedOrderFileName = string.IsNullOrWhiteSpace(order.SignedOrderFileName) ? "Not Uploaded" : order.SignedOrderFileName,
                 InvoiceFileName = string.IsNullOrWhiteSpace(order.InvoiceFileName) ? "Not Uploaded" : order.InvoiceFileName,
-                IsApproved = order.ManagerApprovedAt.HasValue || order.DirectorApprovedAt.HasValue,
+                IsApproved = HasFullApproval(order),
+                IsManagerApproved = order.ManagerApprovedAt.HasValue || !string.IsNullOrWhiteSpace(order.SignedOrderFileName),
+                IsDirectorApproved = order.DirectorApprovedAt.HasValue || !string.IsNullOrWhiteSpace(order.SignedOrderFileName),
                 IsRejected = order.RejectedAt.HasValue,
                 IsCompleted = !string.IsNullOrWhiteSpace(order.InvoiceFileName),
+                CanManagerApprove = CanManagerApprovePurchaseOrders &&
+                    !order.ManagerApprovedAt.HasValue &&
+                    !order.RejectedAt.HasValue &&
+                    string.IsNullOrWhiteSpace(order.InvoiceFileName),
+                CanDirectorApprove = CanApprovePurchaseOrders &&
+                    order.ManagerApprovedAt.HasValue &&
+                    !order.DirectorApprovedAt.HasValue &&
+                    !order.RejectedAt.HasValue &&
+                    string.IsNullOrWhiteSpace(order.InvoiceFileName),
                 CanAmend = CanAmendOrder(order),
                 LinkedReceipts = new ObservableCollection<OrderReceiptItemViewModel>(linkedReceipts),
                 Lines = new ObservableCollection<OrderDetailsLineItem>(
@@ -651,6 +715,12 @@ namespace PurchaseOrderApp.ViewModels
                 string.IsNullOrWhiteSpace(order.InvoiceFileName);
         }
 
+        private static bool HasFullApproval(PurchaseOrder order)
+        {
+            return (order.ManagerApprovedAt.HasValue && order.DirectorApprovedAt.HasValue) ||
+                !string.IsNullOrWhiteSpace(order.SignedOrderFileName);
+        }
+
         private static bool IsDuplicateOrderNumber(PurchaseOrderContext db, string? orderNumber, int currentOrderId)
         {
             if (string.IsNullOrWhiteSpace(orderNumber))
@@ -866,6 +936,11 @@ namespace PurchaseOrderApp.ViewModels
 
             if (isInvoice)
             {
+                if (!HasFullApproval(order))
+                {
+                    return false;
+                }
+
                 order.InvoiceFileName = fileName;
                 order.InvoiceContent = content;
             }
@@ -882,8 +957,7 @@ namespace PurchaseOrderApp.ViewModels
             OrderArchiveService.TrySyncOrderFolder(orderId);
             LoadOrderHistory(db);
 
-            if (!string.IsNullOrWhiteSpace(order.SignedOrderFileName) &&
-                order.SignedOrderContent is { Length: > 0 } &&
+            if (HasFullApproval(order) &&
                 !string.IsNullOrWhiteSpace(order.InvoiceFileName) &&
                 order.InvoiceContent is { Length: > 0 })
             {
@@ -930,6 +1004,21 @@ namespace PurchaseOrderApp.ViewModels
         private static string FormatWorkflowStatus(DateTime? value, string fallback)
         {
             return value.HasValue ? value.Value.ToString("dd/MM/yyyy HH:mm") : fallback;
+        }
+
+        private static string FormatOverallApprovalStatus(DateTime? managerApprovedAt, DateTime? directorApprovedAt)
+        {
+            if (managerApprovedAt.HasValue && directorApprovedAt.HasValue)
+            {
+                return $"Signed by manager and director on {directorApprovedAt.Value:dd/MM/yyyy HH:mm}";
+            }
+
+            if (managerApprovedAt.HasValue)
+            {
+                return $"Manager approved {managerApprovedAt.Value:dd/MM/yyyy HH:mm}; awaiting director";
+            }
+
+            return "Awaiting manager approval";
         }
 
         private void ApplyHistoryFilter(int? preferredSelectedOrderId = null)

@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using PurchaseOrderApp.Models;
 using PurchaseOrderApp.ViewModels;
 using System.IO;
 using System.Windows;
@@ -14,6 +15,12 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+    }
+
+    public MainWindow(AppUser? signedInUser)
+        : this()
+    {
+        GetViewModel()?.SetSignedInUser(signedInUser);
     }
 
     private void OnBackToMenu(object sender, RoutedEventArgs e)
@@ -50,7 +57,7 @@ public partial class MainWindow : Window
         detailsWindow.ShowDialog();
     }
 
-    private void OnMarkApproved(object sender, RoutedEventArgs e)
+    private void OnMarkManagerApproved(object sender, RoutedEventArgs e)
     {
         var order = GetSelectedOrder();
         if (order == null)
@@ -70,13 +77,65 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (order.ManagerApprovedAt.HasValue || order.DirectorApprovedAt.HasValue)
+        if (order.IsManagerApproved)
         {
-            MessageBox.Show("Approval is already marked for this order.", "Already updated", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Manager approval is already marked for this order.", "Already updated", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        if (!GetViewModel()!.MarkApprovalsCompleted(order.PurchaseOrderId))
+        var vm = GetViewModel()!;
+        if (!vm.CanManagerApprovePurchaseOrders)
+        {
+            MessageBox.Show("Only manager approvers can complete manager approval.", "Approval Restricted", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (!vm.MarkManagerApproved(order.PurchaseOrderId))
+        {
+            MessageBox.Show("I couldn't update the approval status for that order.", "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void OnMarkDirectorApproved(object sender, RoutedEventArgs e)
+    {
+        var order = GetSelectedOrder();
+        if (order == null)
+        {
+            return;
+        }
+
+        if (order.IsRejected)
+        {
+            MessageBox.Show("Rejected orders cannot be approved.", "Workflow order", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (order.IsCompleted)
+        {
+            MessageBox.Show("Completed orders do not need another approval step.", "Already completed", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (!order.IsManagerApproved)
+        {
+            MessageBox.Show("Manager approval is required before director approval.", "Manager approval required", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (order.IsDirectorApproved)
+        {
+            MessageBox.Show("Director approval is already marked for this order.", "Already updated", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var vm = GetViewModel()!;
+        if (!vm.CanApprovePurchaseOrders)
+        {
+            MessageBox.Show("Only executive users can complete director approval.", "Approval Restricted", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (!vm.MarkDirectorApproved(order.PurchaseOrderId))
         {
             MessageBox.Show("I couldn't update the approval status for that order.", "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
@@ -173,9 +232,9 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (isInvoice && string.IsNullOrWhiteSpace(order.SignedOrderFileName))
+        if (isInvoice && !order.IsApproved)
         {
-            MessageBox.Show("Upload the signed order first so the order can move into the closed state before the invoice is added.", "Signed order required", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Manager and director approval are required before the invoice is added.", "Approval required", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 

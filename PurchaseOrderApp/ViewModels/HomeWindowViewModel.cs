@@ -72,6 +72,12 @@ public partial class HomeWindowViewModel : ObservableObject
     private bool canAccessPurchaseOrders;
 
     [ObservableProperty]
+    private bool canManagerApprovePurchaseOrders;
+
+    [ObservableProperty]
+    private bool canApprovePurchaseOrders;
+
+    [ObservableProperty]
     private bool canAccessJobCards;
 
     [ObservableProperty]
@@ -144,6 +150,8 @@ public partial class HomeWindowViewModel : ObservableObject
     {
         var permissions = userAccessService.GetPermissions(value);
         CanAccessPurchaseOrders = permissions.CanAccessPurchaseOrders;
+        CanManagerApprovePurchaseOrders = permissions.CanManagerApprovePurchaseOrders;
+        CanApprovePurchaseOrders = permissions.CanApprovePurchaseOrders;
         CanAccessJobCards = permissions.CanAccessJobCards;
         CanAccessWialonUnits = permissions.CanAccessWialonUnits;
         CanAccessTrackingCertificates = permissions.CanAccessTrackingCertificates;

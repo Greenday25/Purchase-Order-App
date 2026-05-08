@@ -47,7 +47,7 @@
                         <TextBlock Text="PURCHASE ORDER HISTORY"
                                    FontSize="30"
                                    FontWeight="Bold" />
-                        <TextBlock Text="Track approvals, signed orders, invoices, and company-specific order sequences from one dashboard."
+                        <TextBlock Text="Track executive approvals, invoices, and company-specific order sequences from one dashboard."
                                    Margin="0,8,0,0"
                                    FontSize="14"
                                    Foreground="{StaticResource SecondaryTextBrush}"
@@ -122,7 +122,7 @@
                                    FontSize="12"
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource AccentBrush}" />
-                        <TextBlock Text="Double-click any order to open its full workflow, upload signed documents and invoices, export the PDF, or delete it before completion."
+                        <TextBlock Text="Double-click any order to open its full workflow, approve executive sign-off, upload invoices, export the PDF, or delete it before completion."
                                    Margin="0,8,0,0"
                                    FontSize="14"
                                    TextWrapping="Wrap" />
@@ -149,7 +149,7 @@
                     <StackPanel>
                         <TextBlock Text="Order History"
                                    Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="Open any order to manage approvals, supporting documents, and PDF exports."
+                        <TextBlock Text="Open any order to manage executive approval, invoices, and PDF exports."
                                    Margin="0,6,0,0"
                                    Foreground="{StaticResource SecondaryTextBrush}" />
                     </StackPanel>
@@ -161,8 +161,25 @@
                             CornerRadius="12"
                             Padding="12,8"
                             VerticalAlignment="Center">
-                        <TextBlock Text="{Binding FilteredOrderHistory.Count, StringFormat={}{0} orders visible}"
-                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding FilteredOrderHistory.Count, StringFormat={}{0} orders visible}"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       VerticalAlignment="Center" />
+                            <Button Content="Manager Approve"
+                                    Width="140"
+                                    Height="34"
+                                    Margin="14,0,0,0"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    IsEnabled="{Binding CanManagerApprovePurchaseOrders}"
+                                    Click="OnMarkManagerApproved" />
+                            <Button Content="Director Approve"
+                                    Width="140"
+                                    Height="34"
+                                    Margin="10,0,0,0"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    IsEnabled="{Binding CanApprovePurchaseOrders}"
+                                    Click="OnMarkDirectorApproved" />
+                        </StackPanel>
                     </Border>
                 </Grid>
 

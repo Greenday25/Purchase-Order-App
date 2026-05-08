@@ -24,7 +24,7 @@ public partial class OrderDetailsWindow : Window
 
     private OrderDetailsViewModel? CurrentOrderDetails => DataContext as OrderDetailsViewModel;
 
-    private void OnMarkApproved(object sender, RoutedEventArgs e)
+    private void OnMarkManagerApproved(object sender, RoutedEventArgs e)
     {
         var order = GetCurrentOrderDetails();
         if (order == null)
@@ -44,13 +44,66 @@ public partial class OrderDetailsWindow : Window
             return;
         }
 
-        if (order.IsApproved)
+        if (order.IsManagerApproved)
         {
-            MessageBox.Show("Approval is already marked for this order.", "Already updated", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Manager approval is already marked for this order.", "Already updated", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        if (!_mainViewModel.MarkApprovalsCompleted(_purchaseOrderId))
+        if (!_mainViewModel.CanManagerApprovePurchaseOrders)
+        {
+            MessageBox.Show("Only manager approvers can complete manager approval.", "Approval Restricted", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (!_mainViewModel.MarkManagerApproved(_purchaseOrderId))
+        {
+            MessageBox.Show("I couldn't update the approval status for that order.", "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        LoadOrderDetails();
+    }
+
+    private void OnMarkDirectorApproved(object sender, RoutedEventArgs e)
+    {
+        var order = GetCurrentOrderDetails();
+        if (order == null)
+        {
+            return;
+        }
+
+        if (order.IsRejected)
+        {
+            MessageBox.Show("Rejected orders cannot be approved.", "Workflow order", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (order.IsCompleted)
+        {
+            MessageBox.Show("Completed orders do not need another approval step.", "Already completed", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (!order.IsManagerApproved)
+        {
+            MessageBox.Show("Manager approval is required before director approval.", "Manager approval required", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (order.IsDirectorApproved)
+        {
+            MessageBox.Show("Director approval is already marked for this order.", "Already updated", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (!_mainViewModel.CanApprovePurchaseOrders)
+        {
+            MessageBox.Show("Only executive users can complete director approval.", "Approval Restricted", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (!_mainViewModel.MarkDirectorApproved(_purchaseOrderId))
         {
             MessageBox.Show("I couldn't update the approval status for that order.", "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
@@ -209,9 +262,9 @@ public partial class OrderDetailsWindow : Window
             return;
         }
 
-        if (isInvoice && !order.HasSignedOrder)
+        if (isInvoice && !order.IsApproved)
         {
-            MessageBox.Show("Upload the signed order first so the order can move into the closed state before the invoice is added.", "Signed order required", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Manager and director approval are required before the invoice is added.", "Approval required", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 

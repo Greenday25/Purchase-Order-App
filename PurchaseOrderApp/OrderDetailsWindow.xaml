@@ -48,7 +48,7 @@
                                FontWeight="Bold" />
                     <StackPanel Orientation="Horizontal"
                                 Margin="0,8,0,0">
-                        <TextBlock Text="{Binding OrderStatus, StringFormat=Status: {0}, TargetNullValue=Status: Pending Approval}"
+                        <TextBlock Text="{Binding OrderStatus, StringFormat=Status: {0}, TargetNullValue=Status: Pending Manager Approval}"
                                    FontSize="12"
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource AccentDarkBrush}" />
@@ -137,7 +137,7 @@
                 <StackPanel Grid.Column="6">
                     <TextBlock Text="Documents"
                                Style="{StaticResource FieldLabelStyle}" />
-                    <TextBlock Text="{Binding SignedOrderFileName, StringFormat=Signed: {0}}"
+                    <TextBlock Text="{Binding ApprovalStatus, StringFormat=Approval: {0}}"
                                FontWeight="SemiBold"
                                TextWrapping="Wrap" />
                     <TextBlock Text="{Binding InvoiceFileName, StringFormat=Invoice: {0}}"
@@ -231,9 +231,9 @@
                         <ColumnDefinition Width="190" />
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="Signed Order"
+                        <TextBlock Text="Manager Approval"
                                    FontWeight="Bold" />
-                        <TextBlock Text="{Binding SignedOrderFileName}"
+                        <TextBlock Text="{Binding ManagerApprovalStatus, StringFormat=Status: {0}}"
                                    Margin="0,4,0,0"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    TextWrapping="Wrap" />
@@ -242,21 +242,42 @@
                                 Orientation="Horizontal"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Center">
-                        <Button Content="Upload"
+                        <Button Content="Approve"
                                 Width="92"
                                 Height="34"
                                 Style="{StaticResource PrimaryButtonStyle}"
-                                Click="OnUploadSignedOrder" />
-                        <Button Content="Open"
-                                Width="82"
-                                Height="34"
-                                Margin="8,0,0,0"
-                                IsEnabled="{Binding HasSignedOrder}"
-                                Click="OnOpenSignedOrder" />
+                                IsEnabled="{Binding CanManagerApprove}"
+                                Click="OnMarkManagerApproved" />
                     </StackPanel>
                 </Grid>
 
                 <Grid Grid.Column="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="190" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Director Approval"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="{Binding DirectorApprovalStatus, StringFormat=Status: {0}}"
+                                   Margin="0,4,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                        <Button Content="Approve"
+                                Width="92"
+                                Height="34"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                IsEnabled="{Binding CanDirectorApprove}"
+                                Click="OnMarkDirectorApproved" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Grid.Column="4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="190" />
@@ -284,22 +305,6 @@
                                 Margin="8,0,0,0"
                                 IsEnabled="{Binding HasInvoice}"
                                 Click="OnOpenInvoice" />
-                    </StackPanel>
-                </Grid>
-
-                <Grid Grid.Column="4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="Received Stock"
-                                   FontWeight="Bold" />
-                        <TextBlock Text="{Binding LinkedReceiptCount, StringFormat={}{0} receipt line(s)}"
-                                   Margin="0,4,0,0"
-                                   Foreground="{StaticResource SecondaryTextBrush}" />
-                        <TextBlock Text="{Binding LinkedReceiptQuantity, StringFormat={}{0} unit(s) received}"
-                                   Margin="0,2,0,0"
-                                   Foreground="{StaticResource SecondaryTextBrush}" />
                     </StackPanel>
                 </Grid>
 

@@ -248,6 +248,8 @@
                             <WrapPanel Grid.Column="1"
                                        Margin="16,20,16,0">
                                 <CheckBox x:Name="RolePurchaseOrdersCheckBox" Content="Purchase Orders" Margin="0,0,14,8" />
+                                <CheckBox x:Name="RoleManagerApprovePurchaseOrdersCheckBox" Content="Manager PO Approval" Margin="0,0,14,8" />
+                                <CheckBox x:Name="RoleApprovePurchaseOrdersCheckBox" Content="Director PO Approval" Margin="0,0,14,8" />
                                 <CheckBox x:Name="RoleJobCardsCheckBox" Content="Job Cards" Margin="0,0,14,8" />
                                 <CheckBox x:Name="RoleWialonUnitsCheckBox" Content="Wialon Units" Margin="0,0,14,8" />
                                 <CheckBox x:Name="RoleTrackingCertificatesCheckBox" Content="Tracking Certificates" Margin="0,0,14,8" />
@@ -272,6 +274,8 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Role" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Width="180" />
                             <DataGridCheckBoxColumn Header="PO" Binding="{Binding CanAccessPurchaseOrders}" Width="60" />
+                            <DataGridCheckBoxColumn Header="Manager" Binding="{Binding CanManagerApprovePurchaseOrders}" Width="90" />
+                            <DataGridCheckBoxColumn Header="Director" Binding="{Binding CanApprovePurchaseOrders}" Width="90" />
                             <DataGridCheckBoxColumn Header="Jobs" Binding="{Binding CanAccessJobCards}" Width="70" />
                             <DataGridCheckBoxColumn Header="Wialon" Binding="{Binding CanAccessWialonUnits}" Width="80" />
                             <DataGridCheckBoxColumn Header="Certs" Binding="{Binding CanAccessTrackingCertificates}" Width="80" />

@@ -35,7 +35,7 @@ public partial class HomeWindow : Window
             return;
         }
 
-        var purchaseOrdersWindow = new MainWindow();
+        var purchaseOrdersWindow = new MainWindow(viewModel.SelectedUser);
         purchaseOrdersWindow.Show();
     }
 

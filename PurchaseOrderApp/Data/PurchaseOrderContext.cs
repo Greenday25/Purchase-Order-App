@@ -19,7 +19,8 @@ namespace PurchaseOrderApp.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=purchaseorders.db");
+            var databasePath = System.IO.Path.Combine(AppContext.BaseDirectory, "purchaseorders.db");
+            optionsBuilder.UseSqlite($"Data Source={databasePath}");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

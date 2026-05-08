@@ -6,8 +6,9 @@ namespace PurchaseOrderApp.ViewModels
         {
             return rejectedAt.HasValue ? "Order Rejected" :
                 !string.IsNullOrWhiteSpace(invoiceFileName) ? "Order Completed" :
-                !string.IsNullOrWhiteSpace(signedOrderFileName) ? "Pending Invoice" :
-                "Pending Approval";
+                (managerApprovedAt.HasValue && directorApprovedAt.HasValue) || !string.IsNullOrWhiteSpace(signedOrderFileName) ? "Pending Invoice" :
+                managerApprovedAt.HasValue ? "Pending Director Approval" :
+                "Pending Manager Approval";
         }
 
         public int PurchaseOrderId { get; init; }
@@ -26,7 +27,7 @@ namespace PurchaseOrderApp.ViewModels
 
         public string OrderStatus => GetOrderStatus(ManagerApprovedAt, DirectorApprovedAt, RejectedAt, SignedOrderFileName, InvoiceFileName);
 
-        public string ApprovalStatus => FormatStatus(DirectorApprovedAt ?? ManagerApprovedAt, "Pending");
+        public string ApprovalStatus => IsApproved ? FormatStatus(DirectorApprovedAt ?? ManagerApprovedAt, "Pending") : OrderStatus;
         public string RejectionStatus => FormatStatus(RejectedAt, "Active");
         public string ManagerApprovalStatus => FormatStatus(ManagerApprovedAt, "Pending");
         public string DirectorApprovalStatus => FormatStatus(DirectorApprovedAt, "Pending");
@@ -34,6 +35,9 @@ namespace PurchaseOrderApp.ViewModels
         public string SignedOrderStatus => string.IsNullOrWhiteSpace(SignedOrderFileName) ? "Not Uploaded" : SignedOrderFileName;
         public string InvoiceStatus => string.IsNullOrWhiteSpace(InvoiceFileName) ? "Not Uploaded" : InvoiceFileName;
         public bool IsCompleted => string.Equals(OrderStatus, "Order Completed", StringComparison.OrdinalIgnoreCase);
+        public bool IsManagerApproved => ManagerApprovedAt.HasValue || !string.IsNullOrWhiteSpace(SignedOrderFileName);
+        public bool IsDirectorApproved => DirectorApprovedAt.HasValue || !string.IsNullOrWhiteSpace(SignedOrderFileName);
+        public bool IsApproved => (ManagerApprovedAt.HasValue && DirectorApprovedAt.HasValue) || !string.IsNullOrWhiteSpace(SignedOrderFileName);
         public bool IsRejected => RejectedAt.HasValue;
 
         private static string FormatStatus(DateTime? value, string fallback)

@@ -7,6 +7,8 @@ namespace PurchaseOrderApp.Services;
 
 public sealed record UserPermissions(
     bool CanAccessPurchaseOrders,
+    bool CanManagerApprovePurchaseOrders,
+    bool CanApprovePurchaseOrders,
     bool CanAccessJobCards,
     bool CanAccessWialonUnits,
     bool CanAccessTrackingCertificates,
@@ -175,6 +177,8 @@ public class UserAccessService
 
         role.Name = NormalizeRequired(input.Name, "Role name");
         role.CanAccessPurchaseOrders = input.CanAccessPurchaseOrders;
+        role.CanManagerApprovePurchaseOrders = input.CanManagerApprovePurchaseOrders;
+        role.CanApprovePurchaseOrders = input.CanApprovePurchaseOrders;
         role.CanAccessJobCards = input.CanAccessJobCards;
         role.CanAccessWialonUnits = input.CanAccessWialonUnits;
         role.CanAccessTrackingCertificates = input.CanAccessTrackingCertificates;
@@ -188,11 +192,13 @@ public class UserAccessService
     {
         if (user?.Role is null)
         {
-            return new UserPermissions(false, false, false, false, false, false, false);
+            return new UserPermissions(false, false, false, false, false, false, false, false, false);
         }
 
         return new UserPermissions(
             user.Role.CanAccessPurchaseOrders,
+            user.Role.CanManagerApprovePurchaseOrders,
+            user.Role.CanApprovePurchaseOrders,
             user.Role.CanAccessJobCards,
             user.Role.CanAccessWialonUnits,
             user.Role.CanAccessTrackingCertificates,
@@ -217,6 +223,8 @@ public class UserAccessService
                 AppRoleId INTEGER NOT NULL CONSTRAINT PK_AppRoles PRIMARY KEY AUTOINCREMENT,
                 Name TEXT NOT NULL,
                 CanAccessPurchaseOrders INTEGER NOT NULL DEFAULT 0,
+                CanManagerApprovePurchaseOrders INTEGER NOT NULL DEFAULT 0,
+                CanApprovePurchaseOrders INTEGER NOT NULL DEFAULT 0,
                 CanAccessJobCards INTEGER NOT NULL DEFAULT 0,
                 CanAccessWialonUnits INTEGER NOT NULL DEFAULT 0,
                 CanAccessTrackingCertificates INTEGER NOT NULL DEFAULT 0,
@@ -225,6 +233,9 @@ public class UserAccessService
                 CanManageUsers INTEGER NOT NULL DEFAULT 0
             );
             """);
+
+        AddColumnIfMissing(db, "AppRoles", "CanManagerApprovePurchaseOrders", "INTEGER NOT NULL DEFAULT 0");
+        AddColumnIfMissing(db, "AppRoles", "CanApprovePurchaseOrders", "INTEGER NOT NULL DEFAULT 0");
 
         db.Database.ExecuteSqlRaw("""
             CREATE UNIQUE INDEX IF NOT EXISTS IX_AppRoles_Name ON AppRoles (Name);
@@ -259,11 +270,13 @@ public class UserAccessService
 
     private static void EnsureDefaults(PurchaseOrderContext db)
     {
-        EnsureRole(db, AdministratorRoleName, true, true, true, true, true, true, true);
-        EnsureRole(db, "Purchase Orders", true, false, false, false, false, false, false);
-        EnsureRole(db, "Job Cards", false, true, true, true, false, false, false);
-        EnsureRole(db, "Inventory", false, false, false, false, true, false, false);
-        EnsureRole(db, "Operations", true, true, true, true, true, false, false);
+        EnsureRole(db, AdministratorRoleName, true, true, true, true, true, true, true, true, true);
+        EnsureRole(db, "Manager", true, true, false, false, false, false, false, false, false);
+        EnsureRole(db, "Executive", true, false, true, false, false, false, false, false, false);
+        EnsureRole(db, "Purchase Orders", true, false, false, false, false, false, false, false, false);
+        EnsureRole(db, "Job Cards", false, false, false, true, true, true, false, false, false);
+        EnsureRole(db, "Inventory", false, false, false, false, false, false, true, false, false);
+        EnsureRole(db, "Operations", true, false, false, true, true, true, true, false, false);
 
         if (!db.AppUsers.Any())
         {
@@ -303,6 +316,8 @@ public class UserAccessService
         PurchaseOrderContext db,
         string name,
         bool purchaseOrders,
+        bool managerApprovePurchaseOrders,
+        bool approvePurchaseOrders,
         bool jobCards,
         bool wialonUnits,
         bool trackingCertificates,
@@ -312,6 +327,25 @@ public class UserAccessService
     {
         if (db.AppRoles.Any(role => role.Name == name))
         {
+            var existingRole = db.AppRoles.Single(role => role.Name == name);
+            var hasPermissionChanges = false;
+            if (managerApprovePurchaseOrders && !existingRole.CanManagerApprovePurchaseOrders)
+            {
+                existingRole.CanManagerApprovePurchaseOrders = true;
+                hasPermissionChanges = true;
+            }
+
+            if (approvePurchaseOrders && !existingRole.CanApprovePurchaseOrders)
+            {
+                existingRole.CanApprovePurchaseOrders = true;
+                hasPermissionChanges = true;
+            }
+
+            if (hasPermissionChanges)
+            {
+                db.SaveChanges();
+            }
+
             return;
         }
 
@@ -319,6 +353,8 @@ public class UserAccessService
         {
             Name = name,
             CanAccessPurchaseOrders = purchaseOrders,
+            CanManagerApprovePurchaseOrders = managerApprovePurchaseOrders,
+            CanApprovePurchaseOrders = approvePurchaseOrders,
             CanAccessJobCards = jobCards,
             CanAccessWialonUnits = wialonUnits,
             CanAccessTrackingCertificates = trackingCertificates,
@@ -345,6 +381,8 @@ public class UserAccessService
         return new AppRole
         {
             CanAccessPurchaseOrders = role.CanAccessPurchaseOrders,
+            CanManagerApprovePurchaseOrders = role.CanManagerApprovePurchaseOrders,
+            CanApprovePurchaseOrders = role.CanApprovePurchaseOrders,
             CanAccessJobCards = role.CanAccessJobCards,
             CanAccessWialonUnits = role.CanAccessWialonUnits,
             CanAccessTrackingCertificates = role.CanAccessTrackingCertificates,
