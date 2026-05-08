@@ -14,6 +14,8 @@ namespace PurchaseOrderApp.Data
         public DbSet<InventoryTrackingUnit> InventoryTrackingUnits { get; set; }
         public DbSet<InventoryReceipt> InventoryReceipts { get; set; }
         public DbSet<InventoryReceiptLine> InventoryReceiptLines { get; set; }
+        public DbSet<AppUser> AppUsers { get; set; }
+        public DbSet<AppRole> AppRoles { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -66,6 +68,13 @@ namespace PurchaseOrderApp.Data
                 .HasOne(line => line.InventoryTransaction)
                 .WithMany()
                 .HasForeignKey(line => line.InventoryTransactionId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<AppRole>().HasIndex(role => role.Name).IsUnique();
+            modelBuilder.Entity<AppUser>().HasIndex(user => user.DisplayName).IsUnique();
+            modelBuilder.Entity<AppUser>()
+                .HasOne(user => user.Role)
+                .WithMany(role => role.Users)
+                .HasForeignKey(user => user.AppRoleId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

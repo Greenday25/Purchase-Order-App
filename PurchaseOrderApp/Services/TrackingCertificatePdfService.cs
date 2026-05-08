@@ -105,6 +105,7 @@ internal sealed class TrackingCertificatePdfService
     private static string GetDefaultExportRoot()
     {
         var documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        //var documentsFolder = Environment.GetFolderPath("C:\\Temp\\");
         return IOPath.Combine(documentsFolder, "Tracking Certificates");
     }
 

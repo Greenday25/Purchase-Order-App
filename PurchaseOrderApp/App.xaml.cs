@@ -16,6 +16,20 @@ public partial class App : Application
         DispatcherUnhandledException += App_DispatcherUnhandledException;
         TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
         base.OnStartup(e);
+
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        var loginWindow = new LoginWindow();
+        var loginResult = loginWindow.ShowDialog();
+        if (loginResult != true || loginWindow.AuthenticatedUser is null)
+        {
+            Shutdown();
+            return;
+        }
+
+        var homeWindow = new HomeWindow(loginWindow.AuthenticatedUser);
+        MainWindow = homeWindow;
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
+        homeWindow.Show();
     }
 
     private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
