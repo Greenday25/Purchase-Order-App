@@ -44,6 +44,62 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="HistoryFilterCardStyle"
+               TargetType="Border">
+            <Setter Property="Background"
+                    Value="White" />
+            <Setter Property="BorderBrush"
+                    Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness"
+                    Value="1" />
+            <Setter Property="CornerRadius"
+                    Value="8" />
+            <Setter Property="Padding"
+                    Value="10,7" />
+        </Style>
+        <Style x:Key="HistoryFilterLabelStyle"
+               TargetType="TextBlock">
+            <Setter Property="FontSize"
+                    Value="11" />
+            <Setter Property="FontWeight"
+                    Value="SemiBold" />
+            <Setter Property="Foreground"
+                    Value="{StaticResource AccentBrush}" />
+            <Setter Property="Margin"
+                    Value="0,0,0,3" />
+        </Style>
+        <Style x:Key="HistoryFilterComboStyle"
+               TargetType="ComboBox"
+               BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="MinHeight"
+                    Value="28" />
+            <Setter Property="Height"
+                    Value="28" />
+            <Setter Property="Padding"
+                    Value="6,3" />
+            <Setter Property="Background"
+                    Value="White" />
+            <Setter Property="BorderBrush"
+                    Value="Transparent" />
+            <Setter Property="FontSize"
+                    Value="12.5" />
+        </Style>
+        <Style x:Key="HistoryFilterDateStyle"
+               TargetType="DatePicker"
+               BasedOn="{StaticResource {x:Type DatePicker}}">
+            <Setter Property="MinHeight"
+                    Value="28" />
+            <Setter Property="Height"
+                    Value="28" />
+            <Setter Property="Padding"
+                    Value="6,3" />
+            <Setter Property="Background"
+                    Value="White" />
+            <Setter Property="BorderBrush"
+                    Value="Transparent" />
+            <Setter Property="FontSize"
+                    Value="12.5" />
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -99,73 +155,82 @@
         </Border>
 
         <Border Grid.Row="1"
-                Margin="0,12,0,12"
-                Padding="14"
+                Margin="0,8,0,8"
+                Padding="10"
                 Style="{StaticResource CardBorderStyle}">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="315" />
-                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="560" />
+                    <ColumnDefinition Width="12" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel>
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Search Orders"
-                                   Style="{StaticResource SectionTitleStyle}"
-                                   FontSize="16"
-                                   VerticalAlignment="Center" />
+                    <TextBlock Text="Search Orders"
+                               Style="{StaticResource SectionTitleStyle}"
+                               FontSize="15"
+                               VerticalAlignment="Center" />
 
-                        <Button Grid.Column="1"
-                                Content="New Order"
-                                Width="118"
-                                Height="32"
-                                Margin="12,0,0,0"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Visibility="{Binding CanCreatePurchaseOrders, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                Click="OnNewOrder" />
-                    </Grid>
-
-                    <TextBlock Text="Search by order number, supplier, status, company, or reference."
-                               Margin="0,0,0,8"
-                               FontSize="12.5"
-                               Foreground="{StaticResource SecondaryTextBrush}"
-                               TextWrapping="Wrap" />
-
-                    <TextBox Text="{Binding HistorySearchText, UpdateSourceTrigger=PropertyChanged, Delay=250}"
-                             Height="34"
+                    <TextBox Grid.Column="2"
+                             Text="{Binding HistorySearchText, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                             Height="32"
                              VerticalContentAlignment="Center"
-                             FontSize="14" />
-                </StackPanel>
+                             FontSize="13" />
+
+                    <Button Grid.Column="4"
+                            Content="New Purchase Order"
+                            Width="156"
+                            Height="32"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Visibility="{Binding CanCreatePurchaseOrders, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Click="OnNewOrder" />
+                    <Button Grid.Column="5"
+                            Content="Order History"
+                            Width="132"
+                            Height="32"
+                            Margin="10,0,0,0"
+                            Style="{StaticResource BaseButtonStyle}"
+                            Visibility="{Binding ShowManualOrderHistoryButton, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Click="OnOpenOrderHistory" />
+                </Grid>
 
                 <Border Grid.Column="2"
                         Background="{StaticResource CardTintBrush}"
                         BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="1"
-                        CornerRadius="12"
-                        Padding="14">
-                    <StackPanel VerticalAlignment="Center">
+                        CornerRadius="10"
+                        Padding="10">
+                    <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center">
                         <TextBlock Text="Workflow Tip"
                                    FontSize="12"
                                    FontWeight="SemiBold"
-                                   Foreground="{StaticResource AccentBrush}" />
-                        <TextBlock Text="Double-click any order to open its full workflow, approve executive sign-off, upload invoices, export the PDF, or delete it before completion."
-                                   Margin="0,6,0,0"
-                                   FontSize="13"
-                                   TextWrapping="Wrap" />
+                                   Foreground="{StaticResource AccentBrush}"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="Double-click an order to open approvals, invoices, PDF export, and maintenance."
+                                   Margin="12,0,0,0"
+                                   FontSize="12.5"
+                                   VerticalAlignment="Center"
+                                   TextWrapping="NoWrap" />
                     </StackPanel>
                 </Border>
             </Grid>
         </Border>
 
-        <Border Grid.Row="2"
+        <Border x:Name="OrderHistoryContentPanel"
+                Grid.Row="2"
                 Style="{StaticResource CardBorderStyle}"
-                Padding="0">
+                Padding="0"
+                Visibility="Collapsed">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -202,6 +267,7 @@
                 <Grid Grid.Row="1"
                       Margin="16,18,16,16">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
@@ -319,7 +385,91 @@
                         </Button>
                     </UniformGrid>
 
-                    <Grid Grid.Row="1">
+                    <Border Grid.Row="1"
+                            Margin="0,0,0,12"
+                            Padding="10"
+                            Background="#EFF8FB"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.15*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="1.05*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="1.05*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="155" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="155" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Style="{StaticResource HistoryFilterCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Status"
+                                               Style="{StaticResource HistoryFilterLabelStyle}" />
+                                    <ComboBox ItemsSource="{Binding HistoryStatusFilterOptions}"
+                                              SelectedItem="{Binding SelectedHistoryStatusFilter}"
+                                              Style="{StaticResource HistoryFilterComboStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    Style="{StaticResource HistoryFilterCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Company"
+                                               Style="{StaticResource HistoryFilterLabelStyle}" />
+                                    <ComboBox ItemsSource="{Binding HistoryCompanyFilterOptions}"
+                                              SelectedItem="{Binding SelectedHistoryCompanyFilter}"
+                                              Style="{StaticResource HistoryFilterComboStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="4"
+                                    Style="{StaticResource HistoryFilterCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="Creator"
+                                               Style="{StaticResource HistoryFilterLabelStyle}" />
+                                    <ComboBox ItemsSource="{Binding HistoryCreatorFilterOptions}"
+                                              SelectedItem="{Binding SelectedHistoryCreatorFilter}"
+                                              Style="{StaticResource HistoryFilterComboStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="6"
+                                    Style="{StaticResource HistoryFilterCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="From"
+                                               Style="{StaticResource HistoryFilterLabelStyle}" />
+                                    <DatePicker SelectedDate="{Binding HistoryFromDateFilter}"
+                                                Style="{StaticResource HistoryFilterDateStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="8"
+                                    Style="{StaticResource HistoryFilterCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="To"
+                                               Style="{StaticResource HistoryFilterLabelStyle}" />
+                                    <DatePicker SelectedDate="{Binding HistoryToDateFilter}"
+                                                Style="{StaticResource HistoryFilterDateStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Button Grid.Column="10"
+                                    Content="Clear"
+                                    Height="43"
+                                    VerticalAlignment="Bottom"
+                                    Background="White"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    Command="{Binding ClearHistoryFiltersCommand}" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2">
                         <DataGrid Margin="0"
                                   ItemsSource="{Binding FilteredOrderHistory}"
                                   SelectedItem="{Binding SelectedOrderHistoryItem}"

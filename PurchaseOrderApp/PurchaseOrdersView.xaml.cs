@@ -18,6 +18,7 @@ public partial class PurchaseOrdersView : UserControl
     private readonly DispatcherTimer historyRefreshTimer = new();
     private bool isHistoryRefreshRunning;
     private bool isDetailsDialogOpen;
+    private bool returnToVisibleHistoryAfterEditor;
     private int historyRefreshCycleCount;
 
     public event EventHandler? BackRequested;
@@ -43,6 +44,7 @@ public partial class PurchaseOrdersView : UserControl
         if (GetViewModel() is MainViewModel vm)
         {
             await vm.SetSignedInUserAsync(user);
+            ApplyRoleDashboardState(vm);
         }
     }
 
@@ -51,8 +53,23 @@ public partial class PurchaseOrdersView : UserControl
         BackRequested?.Invoke(this, EventArgs.Empty);
     }
 
+    private async void OnOpenOrderHistory(object sender, RoutedEventArgs e)
+    {
+        OrderHistoryContentPanel.Visibility = Visibility.Visible;
+
+        if (GetViewModel() is MainViewModel vm)
+        {
+            await vm.LoadOrderHistoryAsync(forceFullRefresh: true);
+        }
+    }
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (GetViewModel() is MainViewModel vm)
+        {
+            ApplyRoleDashboardState(vm);
+        }
+
         historyRefreshTimer.Start();
     }
 
@@ -63,7 +80,7 @@ public partial class PurchaseOrdersView : UserControl
 
     private async void OnHistoryRefreshTimerTick(object? sender, EventArgs e)
     {
-        if (isHistoryRefreshRunning || HistoryPanel.Visibility != Visibility.Visible)
+        if (isHistoryRefreshRunning || OrderHistoryContentPanel.Visibility != Visibility.Visible)
         {
             return;
         }
@@ -97,6 +114,7 @@ public partial class PurchaseOrdersView : UserControl
         var editorViewModel = new MainViewModel();
         _ = editorViewModel.SetSignedInUserAsync(signedInUser);
 
+        returnToVisibleHistoryAfterEditor = OrderHistoryContentPanel.Visibility == Visibility.Visible;
         InlineOrderEditor.DataContext = editorViewModel;
         HistoryPanel.Visibility = Visibility.Collapsed;
         InlineOrderEditor.Visibility = Visibility.Visible;
@@ -110,8 +128,24 @@ public partial class PurchaseOrdersView : UserControl
         InlineOrderEditor.DataContext = new MainViewModel();
         if (GetViewModel() is MainViewModel vm)
         {
+            OrderHistoryContentPanel.Visibility = vm.IsApprovalDashboard || returnToVisibleHistoryAfterEditor
+                ? Visibility.Visible
+                : Visibility.Collapsed;
             await vm.LoadOrderHistoryAsync(forceFullRefresh: true);
         }
+    }
+
+    private void ApplyRoleDashboardState(MainViewModel vm)
+    {
+        if (InlineOrderEditor.Visibility == Visibility.Visible)
+        {
+            return;
+        }
+
+        HistoryPanel.Visibility = Visibility.Visible;
+        OrderHistoryContentPanel.Visibility = vm.IsApprovalDashboard
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private void OnHistoryRowDoubleClick(object sender, MouseButtonEventArgs e)

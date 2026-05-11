@@ -58,6 +58,11 @@ namespace PurchaseOrderApp.ViewModels
         private const string SecurityOperationsCompanyName = "Capital Air Security Operations (Pty) Ltd";
         private const int OrderSequenceDigits = 5;
         private const int OrderSequenceStartingValue = 100;
+        private const string AllReportSuppliersOption = "All Suppliers";
+        private const string AllReportCreatorsOption = "All Creators";
+        private const string AllHistoryStatusesOption = "All Statuses";
+        private const string AllHistoryCompaniesOption = "All Companies";
+        private const string AllHistoryCreatorsOption = "All Creators";
         private const string ReactionServicesCompanyName = "Capital Air Reaction Services CC";
         private const string LegacyReactionServicesCompanyName = "Capital Air Reaction Services (Pty) Ltd";
         private static readonly Vendor[] DefaultCompanies =
@@ -102,6 +107,10 @@ namespace PurchaseOrderApp.ViewModels
 
         public bool IsManagerRole => CanManagerApprovePurchaseOrders && !CanApprovePurchaseOrders;
 
+        public bool IsApprovalDashboard => IsExecutiveRole || IsManagerRole;
+
+        public bool ShowManualOrderHistoryButton => !IsApprovalDashboard;
+
         public bool ShowAwaitingManagerSummary =>
             !string.Equals(signedInUserRoleName, "Executive", StringComparison.OrdinalIgnoreCase);
 
@@ -139,6 +148,8 @@ namespace PurchaseOrderApp.ViewModels
             OnPropertyChanged(nameof(ApprovalAccessStatus));
             OnPropertyChanged(nameof(IsExecutiveRole));
             OnPropertyChanged(nameof(IsManagerRole));
+            OnPropertyChanged(nameof(IsApprovalDashboard));
+            OnPropertyChanged(nameof(ShowManualOrderHistoryButton));
             OnPropertyChanged(nameof(ShowAwaitingManagerSummary));
             OnPropertyChanged(nameof(OrderHistorySummaryColumnCount));
             OnPropertyChanged(nameof(RoleFocusedDashboardTitle));
@@ -151,6 +162,7 @@ namespace PurchaseOrderApp.ViewModels
             RefreshOrderNumber();
             lastHistoryRefreshAt = null;
             await LoadOrderHistoryAsync(forceFullRefresh: true);
+            await LoadSpendReportAsync();
         }
 
         public void CopyAccessContextFrom(MainViewModel source)
@@ -166,6 +178,8 @@ namespace PurchaseOrderApp.ViewModels
             OnPropertyChanged(nameof(ApprovalAccessStatus));
             OnPropertyChanged(nameof(IsExecutiveRole));
             OnPropertyChanged(nameof(IsManagerRole));
+            OnPropertyChanged(nameof(IsApprovalDashboard));
+            OnPropertyChanged(nameof(ShowManualOrderHistoryButton));
             OnPropertyChanged(nameof(ShowAwaitingManagerSummary));
             OnPropertyChanged(nameof(OrderHistorySummaryColumnCount));
             OnPropertyChanged(nameof(RoleFocusedDashboardTitle));
@@ -359,6 +373,59 @@ namespace PurchaseOrderApp.ViewModels
         private ObservableCollection<OrderHistoryItem> filteredOrderHistory = [];
 
         [ObservableProperty]
+        private ObservableCollection<PurchaseOrderSpendReportItem> spendReportItems = [];
+
+        [ObservableProperty]
+        private ObservableCollection<PurchaseOrderSpendChartPoint> spendReportChartPoints = [];
+
+        [ObservableProperty]
+        private ObservableCollection<string> spendReportSupplierOptions = [AllReportSuppliersOption];
+
+        [ObservableProperty]
+        private ObservableCollection<string> spendReportCreatorOptions = [AllReportCreatorsOption];
+
+        [ObservableProperty]
+        private DateTime? selectedSpendReportStartMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+
+        [ObservableProperty]
+        private DateTime? selectedSpendReportEndMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+
+        [ObservableProperty]
+        private string selectedSpendReportSupplier = AllReportSuppliersOption;
+
+        [ObservableProperty]
+        private string selectedSpendReportCreator = AllReportCreatorsOption;
+
+        [ObservableProperty]
+        private decimal spendReportTotalAmount;
+
+        [ObservableProperty]
+        private int spendReportOrderCount;
+
+        [ObservableProperty]
+        private string spendReportChartPointsPath = string.Empty;
+
+        [ObservableProperty]
+        private decimal spendReportChartMaxAmount;
+
+        public string SpendReportPeriodLabel
+        {
+            get
+            {
+                var start = NormalizeReportMonth(SelectedSpendReportStartMonth ?? DateTime.Today);
+                var end = NormalizeReportMonth(SelectedSpendReportEndMonth ?? start);
+                if (end < start)
+                {
+                    (start, end) = (end, start);
+                }
+
+                return start == end
+                    ? start.ToString("MMMM yyyy")
+                    : $"{start:MMM yyyy} to {end:MMM yyyy}";
+            }
+        }
+
+        [ObservableProperty]
         private string lastSaveError = string.Empty;
 
         [ObservableProperty]
@@ -366,6 +433,30 @@ namespace PurchaseOrderApp.ViewModels
 
         [ObservableProperty]
         private string historySearchText = string.Empty;
+
+        [ObservableProperty]
+        private ObservableCollection<string> historyStatusFilterOptions = [AllHistoryStatusesOption];
+
+        [ObservableProperty]
+        private ObservableCollection<string> historyCompanyFilterOptions = [AllHistoryCompaniesOption];
+
+        [ObservableProperty]
+        private ObservableCollection<string> historyCreatorFilterOptions = [AllHistoryCreatorsOption];
+
+        [ObservableProperty]
+        private string selectedHistoryStatusFilter = AllHistoryStatusesOption;
+
+        [ObservableProperty]
+        private string selectedHistoryCompanyFilter = AllHistoryCompaniesOption;
+
+        [ObservableProperty]
+        private string selectedHistoryCreatorFilter = AllHistoryCreatorsOption;
+
+        [ObservableProperty]
+        private DateTime? historyFromDateFilter;
+
+        [ObservableProperty]
+        private DateTime? historyToDateFilter;
 
         [ObservableProperty]
         private int totalOrderCount;
@@ -436,6 +527,18 @@ namespace PurchaseOrderApp.ViewModels
         public async Task RefreshHistoryAsync()
         {
             await LoadOrderHistoryAsync();
+        }
+
+        [RelayCommand]
+        private void ClearHistoryFilters()
+        {
+            HistorySearchText = string.Empty;
+            SelectedHistoryStatusFilter = AllHistoryStatusesOption;
+            SelectedHistoryCompanyFilter = AllHistoryCompaniesOption;
+            SelectedHistoryCreatorFilter = AllHistoryCreatorsOption;
+            HistoryFromDateFilter = null;
+            HistoryToDateFilter = null;
+            ApplyHistoryFilter();
         }
 
         public async Task<bool> MarkManagerApprovedAsync(int orderId)
@@ -509,6 +612,7 @@ namespace PurchaseOrderApp.ViewModels
             db.PurchaseOrders.Remove(order);
             await db.SaveChangesAsync();
             await LoadOrderHistoryAsync(db, forceFullRefresh: true);
+            await LoadSpendReportAsync(db);
             return true;
         }
 
@@ -767,6 +871,7 @@ namespace PurchaseOrderApp.ViewModels
             await db.SaveChangesAsync();
             OrderArchiveService.TrySyncOrderFolder(order.PurchaseOrderId);
             await LoadOrderHistoryAsync(db, forceFullRefresh: true);
+            await LoadSpendReportAsync(db);
             CurrentOrder.OrderNumberManuallyEdited = false;
             RefreshOrderNumber(db);
             return true;
@@ -882,6 +987,7 @@ namespace PurchaseOrderApp.ViewModels
             await db.SaveChangesAsync();
             OrderArchiveService.TrySyncOrderFolder(order.PurchaseOrderId);
             await LoadOrderHistoryAsync(db, forceFullRefresh: true);
+            await LoadSpendReportAsync(db);
             return true;
         }
 
@@ -1070,6 +1176,12 @@ namespace PurchaseOrderApp.ViewModels
             await LoadOrderHistoryAsync(db, forceFullRefresh);
         }
 
+        public async Task LoadSpendReportAsync()
+        {
+            using var db = new PurchaseOrderContext();
+            await LoadSpendReportAsync(db);
+        }
+
         private async Task LoadManagerApproversAsync()
         {
             using var db = new PurchaseOrderContext();
@@ -1114,33 +1226,10 @@ namespace PurchaseOrderApp.ViewModels
             var selectedOrderId = SelectedOrderHistoryItem?.PurchaseOrderId;
             var refreshSince = forceFullRefresh ? null : lastHistoryRefreshAt;
 
-            var query = db.PurchaseOrders
+            var query = ApplyPurchaseOrderAccessFilter(db.PurchaseOrders
                 .AsNoTracking()
                 .Include(order => order.Vendor)
-                .AsQueryable();
-
-            if (!CanApprovePurchaseOrders)
-            {
-                if (CanManagerApprovePurchaseOrders && signedInUserAppUserId.HasValue)
-                {
-                    var managerId = signedInUserAppUserId.Value;
-                    query = query.Where(order => order.AssignedManagerAppUserId == managerId);
-                }
-                else if (signedInUserAppUserId.HasValue)
-                {
-                    var creatorId = signedInUserAppUserId.Value;
-                    query = query.Where(order => order.CreatedByAppUserId == creatorId);
-                }
-                else if (!string.IsNullOrWhiteSpace(signedInUserDisplayName))
-                {
-                    var creatorName = signedInUserDisplayName.Trim();
-                    query = query.Where(order => order.CreatedByDisplayName == creatorName);
-                }
-                else
-                {
-                    query = query.Where(_ => false);
-                }
-            }
+                .AsQueryable());
             if (refreshSince.HasValue)
             {
                 query = query.Where(order => order.UpdatedAt > refreshSince.Value);
@@ -1196,11 +1285,213 @@ namespace PurchaseOrderApp.ViewModels
             }
 
             lastHistoryRefreshAt = DateTime.Now;
+            UpdateHistoryFilterOptions(OrderHistory);
             UpdateHistorySummary(OrderHistory);
             ApplyHistoryFilter(selectedOrderId);
         }
 
+        private async Task LoadSpendReportAsync(PurchaseOrderContext db)
+        {
+            var monthStart = NormalizeReportMonth(SelectedSpendReportStartMonth ?? DateTime.Today);
+            var selectedEndMonth = NormalizeReportMonth(SelectedSpendReportEndMonth ?? monthStart);
+            if (selectedEndMonth < monthStart)
+            {
+                (monthStart, selectedEndMonth) = (selectedEndMonth, monthStart);
+            }
+
+            var monthEnd = selectedEndMonth.AddMonths(1);
+            OnPropertyChanged(nameof(SpendReportPeriodLabel));
+
+            var query = ApplyPurchaseOrderAccessFilter(db.PurchaseOrders
+                .AsNoTracking()
+                .Include(order => order.Lines)
+                .AsQueryable())
+                .Where(order => order.Date >= monthStart && order.Date < monthEnd);
+
+            var orders = await query
+                .Select(order => new
+                {
+                    SupplierName = order.BillTo ?? string.Empty,
+                    CreatedByDisplayName = order.CreatedByDisplayName ?? string.Empty,
+                    Month = new DateTime(order.Date.Year, order.Date.Month, 1),
+                    TotalAmount = order.IncludeVat
+                        ? Math.Round(
+                            Math.Round(order.Lines.Sum(line => line.Quantity * line.UnitPrice), 2) +
+                            Math.Round(Math.Round(order.Lines.Sum(line => line.Quantity * line.UnitPrice), 2) * order.VATPercent / 100m, 2),
+                            2)
+                        : Math.Round(order.Lines.Sum(line => line.Quantity * line.UnitPrice), 2)
+                })
+                .ToListAsync();
+
+            var supplierOptions = orders
+                .Select(order => NormalizeReportValue(order.SupplierName, "Unspecified Supplier"))
+                .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                .OrderBy(value => value)
+                .ToList();
+            SpendReportSupplierOptions = new ObservableCollection<string>(new[] { AllReportSuppliersOption }.Concat(supplierOptions));
+            if (!SpendReportSupplierOptions.Contains(SelectedSpendReportSupplier))
+            {
+                SelectedSpendReportSupplier = AllReportSuppliersOption;
+            }
+
+            var creatorOptions = orders
+                .Select(order => NormalizeReportValue(order.CreatedByDisplayName, "Unspecified Creator"))
+                .Distinct(StringComparer.CurrentCultureIgnoreCase)
+                .OrderBy(value => value)
+                .ToList();
+            SpendReportCreatorOptions = new ObservableCollection<string>(new[] { AllReportCreatorsOption }.Concat(creatorOptions));
+            if (!SpendReportCreatorOptions.Contains(SelectedSpendReportCreator))
+            {
+                SelectedSpendReportCreator = AllReportCreatorsOption;
+            }
+
+            var filteredOrders = orders
+                .Select(order => new
+                {
+                    SupplierName = NormalizeReportValue(order.SupplierName, "Unspecified Supplier"),
+                    CreatedByDisplayName = NormalizeReportValue(order.CreatedByDisplayName, "Unspecified Creator"),
+                    order.Month,
+                    order.TotalAmount
+                })
+                .Where(order =>
+                    string.Equals(SelectedSpendReportSupplier, AllReportSuppliersOption, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(order.SupplierName, SelectedSpendReportSupplier, StringComparison.CurrentCultureIgnoreCase))
+                .Where(order =>
+                    string.Equals(SelectedSpendReportCreator, AllReportCreatorsOption, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(order.CreatedByDisplayName, SelectedSpendReportCreator, StringComparison.CurrentCultureIgnoreCase))
+                .ToList();
+
+            SpendReportItems = new ObservableCollection<PurchaseOrderSpendReportItem>(
+                filteredOrders
+                    .GroupBy(order => new { order.SupplierName, order.CreatedByDisplayName })
+                    .Select(group => new PurchaseOrderSpendReportItem
+                    {
+                        SupplierName = group.Key.SupplierName,
+                        CreatedByDisplayName = group.Key.CreatedByDisplayName,
+                        OrderCount = group.Count(),
+                        TotalAmount = group.Sum(order => order.TotalAmount)
+                    })
+                    .OrderByDescending(item => item.TotalAmount)
+                    .ThenBy(item => item.SupplierName)
+                    .ThenBy(item => item.CreatedByDisplayName));
+            SpendReportTotalAmount = filteredOrders.Sum(order => order.TotalAmount);
+            SpendReportOrderCount = filteredOrders.Count;
+            BuildSpendReportChart(monthStart, selectedEndMonth, filteredOrders
+                .GroupBy(order => order.Month)
+                .ToDictionary(group => group.Key, group => group.Sum(order => order.TotalAmount)));
+        }
+
+        private IQueryable<PurchaseOrder> ApplyPurchaseOrderAccessFilter(IQueryable<PurchaseOrder> query)
+        {
+            if (CanApprovePurchaseOrders)
+            {
+                return query;
+            }
+
+            if (CanManagerApprovePurchaseOrders && signedInUserAppUserId.HasValue)
+            {
+                var managerId = signedInUserAppUserId.Value;
+                return query.Where(order => order.AssignedManagerAppUserId == managerId);
+            }
+
+            if (signedInUserAppUserId.HasValue)
+            {
+                var creatorId = signedInUserAppUserId.Value;
+                return query.Where(order => order.CreatedByAppUserId == creatorId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(signedInUserDisplayName))
+            {
+                var creatorName = signedInUserDisplayName.Trim();
+                return query.Where(order => order.CreatedByDisplayName == creatorName);
+            }
+
+            return query.Where(_ => false);
+        }
+
+        private static string NormalizeReportValue(string? value, string fallback)
+        {
+            return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+        }
+
+        private static DateTime NormalizeReportMonth(DateTime value)
+        {
+            return new DateTime(value.Year, value.Month, 1);
+        }
+
+        private void BuildSpendReportChart(DateTime startMonth, DateTime endMonth, IReadOnlyDictionary<DateTime, decimal> totalsByMonth)
+        {
+            const double chartWidth = 560;
+            const double chartHeight = 130;
+            const double leftPadding = 22;
+            const double rightPadding = 12;
+            const double topPadding = 14;
+            const double bottomPadding = 26;
+
+            var months = new List<DateTime>();
+            for (var month = startMonth; month <= endMonth; month = month.AddMonths(1))
+            {
+                months.Add(month);
+            }
+
+            if (months.Count == 0)
+            {
+                months.Add(startMonth);
+            }
+
+            var values = months.Select(month => totalsByMonth.TryGetValue(month, out var value) ? value : 0m).ToList();
+            var maxValue = values.DefaultIfEmpty(0m).Max();
+            var plotWidth = Math.Max(1, chartWidth - leftPadding - rightPadding);
+            var plotHeight = Math.Max(1, chartHeight - topPadding - bottomPadding);
+            var denominator = Math.Max(1, months.Count - 1);
+
+            var points = months
+                .Select((month, index) =>
+                {
+                    var value = values[index];
+                    var x = leftPadding + (plotWidth * index / denominator);
+                    var y = topPadding + (maxValue <= 0 ? plotHeight : plotHeight - ((double)(value / maxValue) * plotHeight));
+                    return new PurchaseOrderSpendChartPoint
+                    {
+                        MonthLabel = month.ToString("MMM yy"),
+                        TotalAmount = value,
+                        X = x,
+                        Y = y
+                    };
+                })
+                .ToList();
+
+            SpendReportChartPoints = new ObservableCollection<PurchaseOrderSpendChartPoint>(points);
+            SpendReportChartPointsPath = string.Join(" ", points.Select(point => $"{point.X:0.##},{point.Y:0.##}"));
+            SpendReportChartMaxAmount = maxValue;
+        }
+
         partial void OnHistorySearchTextChanged(string value)
+        {
+            ApplyHistoryFilter(SelectedOrderHistoryItem?.PurchaseOrderId);
+        }
+
+        partial void OnSelectedHistoryStatusFilterChanged(string value)
+        {
+            ApplyHistoryFilter(SelectedOrderHistoryItem?.PurchaseOrderId);
+        }
+
+        partial void OnSelectedHistoryCompanyFilterChanged(string value)
+        {
+            ApplyHistoryFilter(SelectedOrderHistoryItem?.PurchaseOrderId);
+        }
+
+        partial void OnSelectedHistoryCreatorFilterChanged(string value)
+        {
+            ApplyHistoryFilter(SelectedOrderHistoryItem?.PurchaseOrderId);
+        }
+
+        partial void OnHistoryFromDateFilterChanged(DateTime? value)
+        {
+            ApplyHistoryFilter(SelectedOrderHistoryItem?.PurchaseOrderId);
+        }
+
+        partial void OnHistoryToDateFilterChanged(DateTime? value)
         {
             ApplyHistoryFilter(SelectedOrderHistoryItem?.PurchaseOrderId);
         }
@@ -1236,6 +1527,7 @@ namespace PurchaseOrderApp.ViewModels
             order.UpdatedAt = DateTime.Now;
             await db.SaveChangesAsync();
             await LoadOrderHistoryAsync(db, forceFullRefresh: false);
+            await LoadSpendReportAsync(db);
             return true;
         }
 
@@ -1284,6 +1576,7 @@ namespace PurchaseOrderApp.ViewModels
             await db.SaveChangesAsync();
             OrderArchiveService.TrySyncOrderFolder(orderId);
             await LoadOrderHistoryAsync(db, forceFullRefresh: false);
+            await LoadSpendReportAsync(db);
 
             if (HasFullApproval(order) &&
                 !string.IsNullOrWhiteSpace(order.InvoiceFileName) &&
@@ -1353,6 +1646,7 @@ namespace PurchaseOrderApp.ViewModels
 
             var filteredItems = OrderHistory
                 .Where(MatchesHistoryScope)
+                .Where(MatchesHistoryStructuredFilters)
                 .Where(item => MatchesHistorySearch(item, searchTerms))
                 .ToList();
 
@@ -1375,6 +1669,47 @@ namespace PurchaseOrderApp.ViewModels
             AwaitingInvoiceCount = historyItems.Count(item => string.Equals(item.OrderStatus, "Pending Invoice", StringComparison.OrdinalIgnoreCase));
         }
 
+        private void UpdateHistoryFilterOptions(IReadOnlyCollection<OrderHistoryItem> historyItems)
+        {
+            var currentStatus = SelectedHistoryStatusFilter;
+            var currentCompany = SelectedHistoryCompanyFilter;
+            var currentCreator = SelectedHistoryCreatorFilter;
+
+            HistoryStatusFilterOptions = new ObservableCollection<string>(
+                new[] { AllHistoryStatusesOption }
+                    .Concat(historyItems
+                        .Select(item => item.OrderStatus)
+                        .Where(value => !string.IsNullOrWhiteSpace(value))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(value => value)));
+
+            HistoryCompanyFilterOptions = new ObservableCollection<string>(
+                new[] { AllHistoryCompaniesOption }
+                    .Concat(historyItems
+                        .Select(item => item.CompanyName)
+                        .Where(value => !string.IsNullOrWhiteSpace(value))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(value => value)));
+
+            HistoryCreatorFilterOptions = new ObservableCollection<string>(
+                new[] { AllHistoryCreatorsOption }
+                    .Concat(historyItems
+                        .Select(item => item.CreatedByDisplayName)
+                        .Where(value => !string.IsNullOrWhiteSpace(value))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(value => value)));
+
+            SelectedHistoryStatusFilter = HistoryStatusFilterOptions.Contains(currentStatus, StringComparer.OrdinalIgnoreCase)
+                ? currentStatus
+                : AllHistoryStatusesOption;
+            SelectedHistoryCompanyFilter = HistoryCompanyFilterOptions.Contains(currentCompany, StringComparer.OrdinalIgnoreCase)
+                ? currentCompany
+                : AllHistoryCompaniesOption;
+            SelectedHistoryCreatorFilter = HistoryCreatorFilterOptions.Contains(currentCreator, StringComparer.OrdinalIgnoreCase)
+                ? currentCreator
+                : AllHistoryCreatorsOption;
+        }
+
         private bool MatchesHistoryScope(OrderHistoryItem item)
         {
             return SelectedHistoryScope switch
@@ -1386,6 +1721,39 @@ namespace PurchaseOrderApp.ViewModels
                 OrderHistoryScope.Completed => item.IsCompleted,
                 _ => true
             };
+        }
+
+        private bool MatchesHistoryStructuredFilters(OrderHistoryItem item)
+        {
+            if (!string.Equals(SelectedHistoryStatusFilter, AllHistoryStatusesOption, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(item.OrderStatus, SelectedHistoryStatusFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (!string.Equals(SelectedHistoryCompanyFilter, AllHistoryCompaniesOption, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(item.CompanyName, SelectedHistoryCompanyFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (!string.Equals(SelectedHistoryCreatorFilter, AllHistoryCreatorsOption, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(item.CreatedByDisplayName, SelectedHistoryCreatorFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (HistoryFromDateFilter.HasValue && item.Date.Date < HistoryFromDateFilter.Value.Date)
+            {
+                return false;
+            }
+
+            if (HistoryToDateFilter.HasValue && item.Date.Date > HistoryToDateFilter.Value.Date)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private OrderHistoryItem MapHistoryItem(PurchaseOrderHistoryProjection order)
