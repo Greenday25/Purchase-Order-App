@@ -1,6 +1,7 @@
 ﻿using PurchaseOrderApp.ViewModels;
 using iText.IO.Font;
 using iText.IO.Font.Constants;
+using iText.IO.Image;
 using iText.Kernel.Colors;
 using iText.Kernel.Font;
 using iText.Kernel.Geom;
@@ -23,6 +24,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using PurchaseOrderApp.Data;
 
 namespace PurchaseOrderApp;
 
@@ -289,8 +291,8 @@ public partial class OrderEditorWindow : Window
     private static string GetAutoPdfExportPath(string orderNumber)
     {
         var documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var exportFolder = System.IO.Path.Combine(documentsFolder, "Purchase Order App", "Exports");
-        Directory.CreateDirectory(exportFolder);
+        var preferredExportFolder = System.IO.Path.Combine(documentsFolder, "Purchase Order App", "Exports");
+        var exportFolder = GetWritableExportFolder(preferredExportFolder);
 
         var safeOrderNumber = string.IsNullOrWhiteSpace(orderNumber)
             ? "Order"
@@ -299,6 +301,39 @@ public partial class OrderEditorWindow : Window
         return System.IO.Path.Combine(
             exportFolder,
             $"PurchaseOrder_{safeOrderNumber}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+    }
+
+    private static string GetWritableExportFolder(string preferredExportFolder)
+    {
+        if (TryPrepareWritableFolder(preferredExportFolder))
+        {
+            return preferredExportFolder;
+        }
+
+        var fallbackFolder = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "PurchaseOrderApp",
+            "Exports");
+        Directory.CreateDirectory(fallbackFolder);
+        return fallbackFolder;
+    }
+
+    private static bool TryPrepareWritableFolder(string folderPath)
+    {
+        try
+        {
+            Directory.CreateDirectory(folderPath);
+            var probePath = System.IO.Path.Combine(folderPath, $".write-test-{Guid.NewGuid():N}.tmp");
+            using (System.IO.File.Create(probePath, 1, FileOptions.DeleteOnClose))
+            {
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static byte[]? TryReadLogoBytes()
@@ -319,7 +354,7 @@ public partial class OrderEditorWindow : Window
         }
     }
 
-    private static Image? CreatePrintLogoImage(double width, double height)
+    private static System.Windows.Controls.Image? CreatePrintLogoImage(double width, double height)
     {
         var logoBytes = TryReadLogoBytes();
         if (logoBytes == null)
@@ -337,7 +372,7 @@ public partial class OrderEditorWindow : Window
             bitmap.EndInit();
             bitmap.Freeze();
 
-            return new Image
+            return new System.Windows.Controls.Image
             {
                 Source = bitmap,
                 Width = width,
@@ -637,9 +672,14 @@ public partial class OrderEditorWindow : Window
         return amount.ToString("N2", OrderAmountNumberFormat);
     }
 
+    private static string FormatLineAmount(decimal amount)
+    {
+        return amount == 0m ? string.Empty : FormatOrderAmount(amount);
+    }
+
     private static string FormatQuantity(decimal quantity)
     {
-        return quantity.ToString("0");
+        return quantity == 0m ? string.Empty : quantity.ToString("0");
     }
 
     private static Block CreatePrintFooterBlock()
@@ -683,23 +723,83 @@ public partial class OrderEditorWindow : Window
         return footerSection;
     }
 
-    private static void AddPdfFooterBlock(Document document, PdfFont font)
+    private static string FormatApprovalSignatureName(string? value, string fallback)
     {
-        var signatureTable = new iTextTable(new float[] { 170f, 1f }).UseAllAvailableWidth().SetMarginTop(4).SetMarginBottom(0);
+        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+    }
+
+    private static string FormatApprovalSignatureDate(DateTime? value)
+    {
+        return value.HasValue ? value.Value.ToString("dd/MM/yyyy HH:mm") : "Pending";
+    }
+
+    private static ImageData? GetUserSignatureImageData(int? appUserId)
+    {
+        if (!appUserId.HasValue)
+        {
+            return null;
+        }
+
+        using var db = new PurchaseOrderContext();
+        var signature = db.AppUsers
+            .Where(user => user.AppUserId == appUserId.Value)
+            .Select(user => user.SignatureContent)
+            .FirstOrDefault();
+
+        return signature is { Length: > 0 } ? ImageDataFactory.Create(signature) : null;
+    }
+
+    private static iTextCell CreatePdfApprovalSignatureCell(
+        string title,
+        string approvedBy,
+        DateTime? approvedAt,
+        ImageData? signatureImageData,
+        PdfFont font,
+        PdfFont boldFont)
+    {
+        var cell = new iTextCell()
+            .Add(new iTextParagraph(title).SetFont(boldFont).SetFontSize(8.5f).SetMarginBottom(1))
+            .SetBorder(new SolidBorder(PdfBorderThickness))
+            .SetPadding(5)
+            .SetMinHeight(44)
+            .SetVerticalAlignment(iText.Layout.Properties.VerticalAlignment.MIDDLE);
+
+        if (approvedAt.HasValue && signatureImageData != null)
+        {
+            cell.Add(new iText.Layout.Element.Image(signatureImageData)
+                .SetAutoScale(true)
+                .SetMaxHeight(26)
+                .SetMarginBottom(1));
+        }
+        else
+        {
+            cell.Add(new iTextParagraph(approvedAt.HasValue ? approvedBy : "Awaiting approval")
+                .SetFont(font)
+                .SetFontSize(8)
+                .SetMarginBottom(1));
+        }
+
+        cell.Add(new iTextParagraph($"{approvedBy} - {FormatApprovalSignatureDate(approvedAt)}")
+            .SetFont(font)
+            .SetFontSize(7.2f)
+            .SetMarginBottom(0));
+        return cell;
+    }
+
+    private static void AddPdfFooterBlock(Document document, PdfFont font, PdfFont boldFont, MainViewModel vm)
+    {
+        var order = vm.CurrentOrder;
+        var managerName = FormatApprovalSignatureName(
+            order?.ManagerApprovedByDisplayName,
+            FormatApprovalSignatureName(order?.AssignedManagerDisplayName, "Manager"));
+        var executiveName = FormatApprovalSignatureName(order?.DirectorApprovedByDisplayName, "Executive");
+        var managerSignature = GetUserSignatureImageData(order?.ManagerApprovedByAppUserId);
+        var executiveSignature = GetUserSignatureImageData(order?.DirectorApprovedByAppUserId);
+
+        var signatureTable = new iTextTable(new float[] { 1f, 1f }).UseAllAvailableWidth().SetMarginTop(4).SetMarginBottom(2);
         signatureTable.SetBorder(iText.Layout.Borders.Border.NO_BORDER);
-        signatureTable.AddCell(new iTextCell()
-            .Add(new iTextParagraph(AuthorisedSignatureLabel).SetFont(font).SetFontSize(11))
-            .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
-            .SetPadding(0)
-            .SetVerticalAlignment(iText.Layout.Properties.VerticalAlignment.BOTTOM));
-        signatureTable.AddCell(new iTextCell()
-            .Add(new iTextParagraph(" "))
-            .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
-            .SetBorderBottom(new SolidBorder(PdfBorderThickness))
-            .SetPadding(0)
-            .SetPaddingLeft(6)
-            .SetPaddingRight(46)
-            .SetMinHeight(12));
+        signatureTable.AddCell(CreatePdfApprovalSignatureCell("Manager Approval", managerName, order?.ManagerApprovedAt, managerSignature, font, boldFont).SetMarginRight(4));
+        signatureTable.AddCell(CreatePdfApprovalSignatureCell("Executive Approval", executiveName, order?.DirectorApprovedAt, executiveSignature, font, boldFont).SetMarginLeft(4));
         document.Add(signatureTable);
 
         document.Add(new iTextParagraph(QuoteOrderFooterText)
@@ -734,7 +834,7 @@ public partial class OrderEditorWindow : Window
         }
     }
 
-    private void OnExportPdf(object sender, RoutedEventArgs e)
+    private async void OnExportPdf(object sender, RoutedEventArgs e)
     {
         if (DataContext is not MainViewModel vm)
         {
@@ -747,7 +847,7 @@ public partial class OrderEditorWindow : Window
             return;
         }
 
-        if (ExportCurrentOrderToPdf() && vm.TrySavePurchaseOrder())
+        if (ExportCurrentOrderToPdf() && await vm.TrySavePurchaseOrderAsync())
         {
             Close();
             return;
@@ -756,11 +856,11 @@ public partial class OrderEditorWindow : Window
         MessageBox.Show(GetSaveFailureMessage(vm), "Save failed", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
-    private void OnSavePurchaseOrder(object sender, RoutedEventArgs e)
+    private async void OnSavePurchaseOrder(object sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
         {
-            if (vm.TrySavePurchaseOrder())
+            if (await vm.TrySavePurchaseOrderAsync())
             {
                 Close();
                 return;
@@ -1009,7 +1109,7 @@ public partial class OrderEditorWindow : Window
                     .SetTextAlignment(iTextTextAlignment.CENTER));
 
                 itemsTable.AddCell(new iTextCell()
-                    .Add(new iTextParagraph(FormatOrderAmount(line.LineTotal)).SetFont(font).SetFontSize(9))
+                    .Add(new iTextParagraph(FormatLineAmount(line.LineTotal)).SetFont(font).SetFontSize(9))
                     .SetBorder(cellBorder)
                     .SetPadding(PdfItemRowPadding)
                     .SetMinHeight(PdfItemRowMinHeight)
@@ -1074,7 +1174,7 @@ public partial class OrderEditorWindow : Window
                 .SetTextAlignment(iTextTextAlignment.RIGHT));
 
             document.Add(itemsTable);
-            AddPdfFooterBlock(document, font);
+            AddPdfFooterBlock(document, font, boldFont, vm);
 
             document.Close();
             ApplyPdfExportScale(unscaledFilePath, filePath, PdfExportScale);
@@ -1179,7 +1279,7 @@ public partial class OrderEditorWindow : Window
             itemRow.Cells.Add(new TableCell(new Paragraph(new Run(line.PartNumber ?? string.Empty)) { FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(0, 0, PrintBorderThickness, PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
             itemRow.Cells.Add(new TableCell(new Paragraph(new Run(line.Description ?? string.Empty)) { FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(0, 0, PrintBorderThickness, PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
             itemRow.Cells.Add(new TableCell(new Paragraph(new Run(string.Empty)) { TextAlignment = TextAlignment.Center, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(0, 0, PrintBorderThickness, PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
-            itemRow.Cells.Add(new TableCell(new Paragraph(new Run(FormatOrderAmount(line.LineTotal))) { TextAlignment = TextAlignment.Right, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
+            itemRow.Cells.Add(new TableCell(new Paragraph(new Run(FormatLineAmount(line.LineTotal))) { TextAlignment = TextAlignment.Right, FontSize = 9 }) { BorderBrush = Brushes.Black, BorderThickness = new Thickness(PrintBorderThickness), Padding = new Thickness(PrintItemCellPadding) });
             itemsGroup.Rows.Add(itemRow);
         }
 

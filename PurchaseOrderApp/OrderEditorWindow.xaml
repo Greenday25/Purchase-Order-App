@@ -10,7 +10,8 @@
         Width="1180"
         MinHeight="820"
         MinWidth="1040"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized">
 
     <Window.DataContext>
         <vm:MainViewModel />
@@ -21,6 +22,7 @@
             <Setter Property="Margin" Value="4,6" />
             <Setter Property="Padding" Value="10,7" />
             <Setter Property="MinHeight" Value="34" />
+            <Setter Property="KeyboardNavigation.TabNavigation" Value="Continue" />
             <Setter Property="Background" Value="#FFFFFF" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
@@ -58,6 +60,8 @@
                     <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                         <Setter Property="BorderThickness" Value="0" />
                         <Setter Property="Padding" Value="0" />
+                        <Setter Property="IsTabStop" Value="False" />
+                        <Setter Property="KeyboardNavigation.TabNavigation" Value="Continue" />
                         <Style.Triggers>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter Property="Background" Value="#DFF3F8" />
@@ -87,40 +91,43 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="24">
+    <Grid Margin="16"
+          KeyboardNavigation.TabNavigation="Continue">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Style="{StaticResource HeroCardStyle}">
+        <Border Style="{StaticResource HeroCardStyle}"
+                Padding="14">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Horizontal">
-                    <Border Width="96"
-                            Height="96"
-                            CornerRadius="20"
+                <StackPanel Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <Border Width="58"
+                            Height="58"
+                            CornerRadius="12"
                             Background="White"
                             BorderBrush="#FFFFFF"
                             BorderThickness="1"
-                            Padding="14"
-                            Margin="0,0,18,0">
+                            Padding="9"
+                            Margin="0,0,12,0">
                         <Image Source="Assets/logo.png"
                                Stretch="Uniform" />
                     </Border>
 
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="OFFICIAL ORDER"
-                                   FontSize="30"
+                                   FontSize="22"
                                    FontWeight="Bold" />
                         <TextBlock Text="Create a purchase order, prepare the printable layout, then export or print when everything looks right."
-                                   Margin="0,8,0,0"
-                                   FontSize="14"
+                                   Margin="0,4,0,0"
+                                   FontSize="12.5"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    TextWrapping="Wrap" />
                     </StackPanel>
@@ -131,10 +138,11 @@
                         BorderBrush="#FFFFFF"
                         BorderThickness="1"
                         CornerRadius="14"
-                        Padding="14,10"
-                        VerticalAlignment="Top">
+                        Padding="10,8"
+                        VerticalAlignment="Center">
                     <TextBlock Text="Order numbers are generated automatically, but you can edit them before saving."
-                               Width="250"
+                               Width="230"
+                               FontSize="12.5"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap" />
                 </Border>
@@ -142,145 +150,145 @@
         </Border>
 
         <Grid Grid.Row="1"
-              Margin="0,20,0,18">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="390" />
-                <ColumnDefinition Width="20" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+              Margin="0,12,0,12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-            <Border Style="{StaticResource CardBorderStyle}">
+            <Border Style="{StaticResource CardBorderStyle}"
+                    Padding="14"
+                    MaxHeight="240">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
                         <TextBlock Text="Order Setup"
                                    Style="{StaticResource SectionTitleStyle}" />
                         <TextBlock Text="Set the company, reference, and billing information before adding line items."
                                    Margin="0,6,0,0"
                                    Foreground="{StaticResource SecondaryTextBrush}"
                                    TextWrapping="Wrap" />
-                    </StackPanel>
+                        </StackPanel>
 
-                    <Grid Grid.Row="1"
-                          Margin="0,22,0,0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding VatDisplayLabel, StringFormat=Tax: {0}}"
+                                   VerticalAlignment="Top"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </Grid>
 
-                        <TextBlock Text="Order Number"
-                                   Style="{StaticResource FieldLabelStyle}" />
-                        <TextBox Grid.Row="0"
-                                 Margin="0,24,0,0"
-                                 Text="{Binding OrderNumber, UpdateSourceTrigger=PropertyChanged}"
-                                 IsReadOnly="{Binding IsOrderNumberReadOnly}"
-                                 FontSize="14" />
+                    <ScrollViewer Grid.Row="1"
+                                  Margin="0,12,0,0"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                    <WrapPanel ItemHeight="68">
+                        <StackPanel Width="180"
+                                    Margin="0,0,12,0">
+                            <TextBlock Text="Order Number"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding OrderNumber, UpdateSourceTrigger=PropertyChanged}"
+                                     IsReadOnly="{Binding IsOrderNumberReadOnly}"
+                                     TabIndex="0"
+                                     FontSize="13" />
+                        </StackPanel>
 
-                        <TextBlock Grid.Row="1"
-                                   Text="Date"
-                                   Style="{StaticResource FieldLabelStyle}"
-                                   Margin="0,18,0,6" />
-                        <DatePicker Grid.Row="1"
-                                    Margin="0,42,0,0"
-                                    SelectedDate="{Binding CurrentOrder.Date, UpdateSourceTrigger=PropertyChanged}" />
+                        <StackPanel Width="150"
+                                    Margin="0,0,12,0">
+                            <TextBlock Text="Date"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <DatePicker SelectedDate="{Binding CurrentOrder.Date, UpdateSourceTrigger=PropertyChanged}"
+                                        TabIndex="1" />
+                        </StackPanel>
 
-                        <TextBlock Grid.Row="2"
-                                   Text="Reference *"
-                                   Style="{StaticResource FieldLabelStyle}"
-                                   Margin="0,18,0,6" />
-                        <TextBox Grid.Row="2"
-                                 Margin="0,42,0,0"
-                                 Text="{Binding CurrentOrder.Reference, UpdateSourceTrigger=PropertyChanged}"
-                                 FontSize="14" />
+                        <StackPanel Width="210"
+                                    Margin="0,0,12,0">
+                            <TextBlock Text="Reference *"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding CurrentOrder.Reference, UpdateSourceTrigger=PropertyChanged}"
+                                     TabIndex="2"
+                                     FontSize="13" />
+                        </StackPanel>
 
-                        <TextBlock Grid.Row="3"
-                                   Text="Company"
-                                   Style="{StaticResource FieldLabelStyle}"
-                                   Margin="0,18,0,6" />
-                        <ComboBox Grid.Row="3"
-                                  Margin="0,42,0,0"
-                                  ItemsSource="{Binding Vendors}"
-                                  SelectedItem="{Binding SelectedVendor}"
-                                  DisplayMemberPath="Name"
-                                  FontSize="14" />
+                        <StackPanel Width="255"
+                                    Margin="0,0,12,0">
+                            <TextBlock Text="Company"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox ItemsSource="{Binding Vendors}"
+                                      SelectedItem="{Binding SelectedVendor}"
+                                      DisplayMemberPath="Name"
+                                      TabIndex="3"
+                                      FontSize="13" />
+                        </StackPanel>
 
-                        <TextBlock Grid.Row="4"
-                                   Text="Bill To *"
-                                   Style="{StaticResource FieldLabelStyle}"
-                                   Margin="0,18,0,6" />
-                        <TextBox Grid.Row="4"
-                                 Margin="0,42,0,0"
-                                 Text="{Binding CurrentOrder.BillTo, UpdateSourceTrigger=PropertyChanged}"
-                                 FontSize="14" />
+                        <StackPanel Width="220"
+                                    Margin="0,0,12,0">
+                            <TextBlock Text="Manager Approval *"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <ComboBox ItemsSource="{Binding ManagerApprovers}"
+                                      SelectedItem="{Binding SelectedManagerApprover}"
+                                      DisplayMemberPath="DisplayName"
+                                      TabIndex="4"
+                                      FontSize="13" />
+                        </StackPanel>
 
-                        <TextBlock Grid.Row="5"
-                                   Text="Address"
-                                   Style="{StaticResource FieldLabelStyle}"
-                                   Margin="0,18,0,6" />
-                        <TextBox Grid.Row="5"
-                                 Margin="0,42,0,0"
-                                 Height="84"
-                                 Text="{Binding CurrentOrder.BillToAddress, UpdateSourceTrigger=PropertyChanged}"
-                                 TextWrapping="Wrap"
-                                 AcceptsReturn="True"
-                                 VerticalContentAlignment="Top"
-                                 FontSize="14" />
+                        <StackPanel Width="230"
+                                    Margin="0,0,12,0">
+                            <TextBlock Text="Bill To *"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Text="{Binding CurrentOrder.BillTo, UpdateSourceTrigger=PropertyChanged}"
+                                     TabIndex="5"
+                                     FontSize="13" />
+                        </StackPanel>
 
-                        <TextBlock Grid.Row="6"
-                                   Text="Tax on This Order"
-                                   Style="{StaticResource FieldLabelStyle}"
-                                   Margin="0,18,0,6" />
-                        <Border Grid.Row="6"
-                                Margin="0,42,0,0"
-                                Padding="14"
+                        <StackPanel Width="360"
+                                    Margin="0,0,12,0">
+                            <TextBlock Text="Address"
+                                       Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Height="38"
+                                     Text="{Binding CurrentOrder.BillToAddress, UpdateSourceTrigger=PropertyChanged}"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     TabIndex="6"
+                                     VerticalContentAlignment="Top"
+                                     FontSize="13" />
+                        </StackPanel>
+
+                        <Border Width="270"
+                                Height="58"
+                                Margin="0,0,12,0"
+                                Padding="10"
                                 Background="{StaticResource CardTintBrush}"
                                 BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="14">
-                            <StackPanel>
-                                <CheckBox Content="Include VAT on the purchase order"
+                                CornerRadius="10">
+                            <StackPanel VerticalAlignment="Center">
+                                <CheckBox Content="Include VAT on purchase order"
                                           IsChecked="{Binding CurrentOrder.IncludeVat}"
                                           FontWeight="SemiBold"
+                                          TabIndex="7"
                                           Checked="OnIncludeVatChanged"
                                           Unchecked="OnIncludeVatChanged" />
                                 <TextBlock Text="{Binding VatDisplayLabel}"
-                                           Margin="0,8,0,0"
+                                           Margin="0,4,0,0"
                                            Foreground="{StaticResource SecondaryTextBrush}" />
-                            </StackPanel>
+                                </StackPanel>
                         </Border>
-
-                        <Border Grid.Row="7"
-                                Margin="0,24,0,0"
-                                Padding="16"
-                                Background="{StaticResource AccentSoftBrush}"
-                                BorderBrush="#C9E7EF"
-                                BorderThickness="1"
-                                CornerRadius="14">
-                            <StackPanel>
-                                <TextBlock Text="Quick Tip"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource AccentBrush}" />
-                                <TextBlock Text="Use the company selector to switch prefixes, adjust VAT only when the supplier needs it shown, then add the line items before saving or exporting."
-                                           Margin="0,8,0,0"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
+                    </WrapPanel>
+                    </ScrollViewer>
                 </Grid>
             </Border>
 
-            <Border Grid.Column="2"
+            <Border Grid.Row="1"
+                    Margin="0,12,0,0"
                     Style="{StaticResource CardBorderStyle}">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -307,6 +315,7 @@
                         <Button Grid.Column="1"
                                 Content="Add Line"
                                 Width="120"
+                                TabIndex="8"
                                 Style="{StaticResource PrimaryButtonStyle}"
                                 Command="{Binding AddLineCommand}" />
                     </Grid>
@@ -319,12 +328,15 @@
                               CanUserAddRows="False"
                               SelectionMode="Single"
                               RowHeaderWidth="0"
+                              TabIndex="9"
+                              KeyboardNavigation.TabNavigation="Continue"
                               ColumnHeaderHeight="34">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="Quantity" Width="105">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBox Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}"
+                                        <TextBox Text="{Binding QuantityText, UpdateSourceTrigger=PropertyChanged}"
+                                                 TabIndex="0"
                                                  Style="{StaticResource LineItemNumberInputStyle}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -333,6 +345,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding PartNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                 TabIndex="1"
                                                  Style="{StaticResource LineItemInputStyle}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -341,6 +354,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                                                 TabIndex="2"
                                                  Style="{StaticResource LineItemInputStyle}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -348,7 +362,8 @@
                             <DataGridTemplateColumn Header="Unit Price" Width="125">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBox Text="{Binding UnitPrice, UpdateSourceTrigger=PropertyChanged}"
+                                        <TextBox Text="{Binding UnitPriceText, UpdateSourceTrigger=PropertyChanged}"
+                                                 TabIndex="3"
                                                  Style="{StaticResource LineItemNumberInputStyle}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -356,7 +371,7 @@
                             <DataGridTemplateColumn Header="Line Total" Width="125" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding LineTotal, StringFormat=N2}"
+                                        <TextBlock Text="{Binding LineTotalDisplay}"
                                                    Style="{StaticResource LineItemTotalTextStyle}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -368,6 +383,7 @@
                                                 Width="86"
                                                 Height="34"
                                                 Margin="4,6"
+                                                TabIndex="4"
                                                 VerticalAlignment="Center"
                                                 Command="{Binding DataContext.RemoveLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 CommandParameter="{Binding}" />
@@ -379,7 +395,7 @@
 
                     <Border Grid.Row="2"
                             Margin="0,18,0,0"
-                            Padding="18"
+                            Padding="12,10"
                             Background="{StaticResource CardTintBrush}"
                             BorderBrush="{StaticResource BorderBrush}"
                             BorderThickness="1"
@@ -394,10 +410,9 @@
                                            FontSize="12"
                                            FontWeight="SemiBold"
                                            Foreground="{StaticResource SecondaryTextBrush}" />
-                                <TextBlock Text="The purchase order updates instantly as you edit quantities and prices."
-                                           Margin="0,6,0,0"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           TextWrapping="Wrap" />
+                                <TextBlock Text="Totals update as you edit line quantities and prices."
+                                           Margin="0,4,0,0"
+                                           Foreground="{StaticResource SecondaryTextBrush}" />
                             </StackPanel>
 
                             <StackPanel Grid.Column="1"
@@ -427,13 +442,16 @@
                 <Button Content="Close"
                         Width="110"
                         Margin="0,0,10,0"
+                        TabIndex="20"
                         Click="OnCloseWindow" />
                 <Button Content="Export to PDF"
                         Width="130"
                         Margin="0,0,10,0"
+                        TabIndex="21"
                         Click="OnExportPdf" />
                 <Button Content="Save PO"
                         Width="120"
+                        TabIndex="22"
                         Style="{StaticResource PrimaryButtonStyle}"
                         Click="OnSavePurchaseOrder" />
             </StackPanel>

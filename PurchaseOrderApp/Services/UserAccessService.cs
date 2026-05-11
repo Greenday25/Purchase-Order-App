@@ -153,6 +153,33 @@ public class UserAccessService
         db.SaveChanges();
     }
 
+    public void SaveUserSignature(int appUserId, string fileName, byte[] content)
+    {
+        if (content.Length == 0)
+        {
+            throw new InvalidOperationException("Select a signature image before saving.");
+        }
+
+        using var db = CreateReadyContext();
+        var user = db.AppUsers.Find(appUserId)
+            ?? throw new InvalidOperationException("The selected user could not be found.");
+
+        user.SignatureFileName = NormalizeRequired(fileName, "Signature file name");
+        user.SignatureContent = content;
+        db.SaveChanges();
+    }
+
+    public void RemoveUserSignature(int appUserId)
+    {
+        using var db = CreateReadyContext();
+        var user = db.AppUsers.Find(appUserId)
+            ?? throw new InvalidOperationException("The selected user could not be found.");
+
+        user.SignatureFileName = null;
+        user.SignatureContent = null;
+        db.SaveChanges();
+    }
+
     public AppRole CreateRole(AppRole input)
     {
         using var db = CreateReadyContext();
@@ -210,62 +237,14 @@ public class UserAccessService
     private static PurchaseOrderContext CreateReadyContext()
     {
         var db = new PurchaseOrderContext();
-        db.Database.EnsureCreated();
-        EnsureSchema(db);
+        db.MigrateSafely();
         EnsureDefaults(db);
         return db;
     }
 
     private static void EnsureSchema(PurchaseOrderContext db)
     {
-        db.Database.ExecuteSqlRaw("""
-            CREATE TABLE IF NOT EXISTS AppRoles (
-                AppRoleId INTEGER NOT NULL CONSTRAINT PK_AppRoles PRIMARY KEY AUTOINCREMENT,
-                Name TEXT NOT NULL,
-                CanAccessPurchaseOrders INTEGER NOT NULL DEFAULT 0,
-                CanManagerApprovePurchaseOrders INTEGER NOT NULL DEFAULT 0,
-                CanApprovePurchaseOrders INTEGER NOT NULL DEFAULT 0,
-                CanAccessJobCards INTEGER NOT NULL DEFAULT 0,
-                CanAccessWialonUnits INTEGER NOT NULL DEFAULT 0,
-                CanAccessTrackingCertificates INTEGER NOT NULL DEFAULT 0,
-                CanAccessInventory INTEGER NOT NULL DEFAULT 0,
-                CanAccessConnectivitySettings INTEGER NOT NULL DEFAULT 0,
-                CanManageUsers INTEGER NOT NULL DEFAULT 0
-            );
-            """);
-
-        AddColumnIfMissing(db, "AppRoles", "CanManagerApprovePurchaseOrders", "INTEGER NOT NULL DEFAULT 0");
-        AddColumnIfMissing(db, "AppRoles", "CanApprovePurchaseOrders", "INTEGER NOT NULL DEFAULT 0");
-
-        db.Database.ExecuteSqlRaw("""
-            CREATE UNIQUE INDEX IF NOT EXISTS IX_AppRoles_Name ON AppRoles (Name);
-            """);
-
-        db.Database.ExecuteSqlRaw("""
-            CREATE TABLE IF NOT EXISTS AppUsers (
-                AppUserId INTEGER NOT NULL CONSTRAINT PK_AppUsers PRIMARY KEY AUTOINCREMENT,
-                DisplayName TEXT NOT NULL,
-                AppRoleId INTEGER NOT NULL,
-                IsActive INTEGER NOT NULL DEFAULT 1,
-                CreatedAt TEXT NOT NULL,
-                PasswordHash TEXT NOT NULL DEFAULT '',
-                PasswordSalt TEXT NOT NULL DEFAULT '',
-                PasswordUpdatedAt TEXT NULL,
-                CONSTRAINT FK_AppUsers_AppRoles_AppRoleId FOREIGN KEY (AppRoleId) REFERENCES AppRoles (AppRoleId) ON DELETE RESTRICT
-            );
-            """);
-
-        AddColumnIfMissing(db, "AppUsers", "PasswordHash", "TEXT NOT NULL DEFAULT ''");
-        AddColumnIfMissing(db, "AppUsers", "PasswordSalt", "TEXT NOT NULL DEFAULT ''");
-        AddColumnIfMissing(db, "AppUsers", "PasswordUpdatedAt", "TEXT NULL");
-
-        db.Database.ExecuteSqlRaw("""
-            CREATE UNIQUE INDEX IF NOT EXISTS IX_AppUsers_DisplayName ON AppUsers (DisplayName);
-            """);
-
-        db.Database.ExecuteSqlRaw("""
-            CREATE INDEX IF NOT EXISTS IX_AppUsers_AppRoleId ON AppUsers (AppRoleId);
-            """);
+        // Schema is now handled by EF Core migrations
     }
 
     private static void EnsureDefaults(PurchaseOrderContext db)

@@ -19,3 +19,6 @@ Database Backups/
 *.lscache
 _template_extract/
 .buildcheck/
+.continue/
+AppPublish/
+MigrationPublish/

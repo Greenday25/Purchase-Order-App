@@ -14,7 +14,13 @@ namespace PurchaseOrderApp.Models
 
         public bool OrderNumberManuallyEdited { get; set; }
 
+        public int? CreatedByAppUserId { get; set; }
+        public string? CreatedByDisplayName { get; set; }
+        public int? AssignedManagerAppUserId { get; set; }
+        public string? AssignedManagerDisplayName { get; set; }
+
         public DateTime Date { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
         public string Reference { get; set; }
 
         public int VendorId { get; set; }
@@ -26,13 +32,20 @@ namespace PurchaseOrderApp.Models
         public bool IncludeVat { get; set; } = true;
         public decimal VATPercent { get; set; } = 15m;
         public DateTime? ManagerApprovedAt { get; set; }
+        public int? ManagerApprovedByAppUserId { get; set; }
+        public string? ManagerApprovedByDisplayName { get; set; }
         public DateTime? DirectorApprovedAt { get; set; }
+        public int? DirectorApprovedByAppUserId { get; set; }
+        public string? DirectorApprovedByDisplayName { get; set; }
         public DateTime? SupplierCopySentAt { get; set; }
         public DateTime? RejectedAt { get; set; }
         public string? SignedOrderFileName { get; set; }
         public byte[]? SignedOrderContent { get; set; }
         public string? InvoiceFileName { get; set; }
         public byte[]? InvoiceContent { get; set; }
+        public int? InvoiceUploadedByAppUserId { get; set; }
+        public string? InvoiceUploadedByDisplayName { get; set; }
+        public DateTime? InvoiceUploadedAt { get; set; }
 
         public IList<PurchaseOrderLine> Lines { get; set; } = new List<PurchaseOrderLine>();
 

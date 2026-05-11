@@ -19,4 +19,8 @@ public class AppUser
     public string PasswordSalt { get; set; } = string.Empty;
 
     public DateTime? PasswordUpdatedAt { get; set; }
+
+    public string? SignatureFileName { get; set; }
+
+    public byte[]? SignatureContent { get; set; }
 }

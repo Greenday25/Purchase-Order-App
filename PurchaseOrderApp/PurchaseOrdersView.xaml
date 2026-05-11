@@ -1,0 +1,399 @@
+<UserControl x:Class="PurchaseOrderApp.PurchaseOrdersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:PurchaseOrderApp"
+             xmlns:vm="clr-namespace:PurchaseOrderApp.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="820"
+             d:DesignWidth="1400">
+
+    <UserControl.DataContext>
+        <vm:MainViewModel />
+    </UserControl.DataContext>
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="HistorySummaryButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource BaseButtonStyle}">
+            <Setter Property="MinHeight"
+                    Value="52" />
+            <Setter Property="BorderThickness"
+                    Value="1.5" />
+        </Style>
+        <Style x:Key="UrgentOrderRowStyle"
+               TargetType="DataGridRow">
+            <Setter Property="Background"
+                    Value="{Binding RowBackground}" />
+            <Setter Property="SnapsToDevicePixels"
+                    Value="True" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver"
+                         Value="True">
+                    <Setter Property="Background"
+                            Value="#EEF7FA" />
+                </Trigger>
+                <Trigger Property="IsSelected"
+                         Value="True">
+                    <Setter Property="Background"
+                            Value="{StaticResource SelectionBrush}" />
+                    <Setter Property="Foreground"
+                            Value="{StaticResource PrimaryTextBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+    <Grid x:Name="HistoryPanel"
+          Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource HeroCardStyle}"
+                Padding="16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="78"
+                            Height="78"
+                            CornerRadius="16"
+                            Background="White"
+                            BorderBrush="#FFFFFF"
+                            BorderThickness="1"
+                            Padding="10"
+                            Margin="0,0,16,0">
+                        <Image Source="Assets/logo.png"
+                               Stretch="Uniform" />
+                    </Border>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding RoleFocusedDashboardTitle}"
+                                   FontSize="28"
+                                   FontWeight="Bold" />
+                        <TextBlock Text="{Binding RoleFocusedDashboardSubtitle}"
+                                   Margin="0,6,0,0"
+                                   FontSize="14"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Top">
+                    <Button Content="Back to Menu"
+                            Width="140"
+                            Click="OnBackToMenu" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,12,0,12"
+                Padding="14"
+                Style="{StaticResource CardBorderStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="315" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Search Orders"
+                                   Style="{StaticResource SectionTitleStyle}"
+                                   FontSize="16"
+                                   VerticalAlignment="Center" />
+
+                        <Button Grid.Column="1"
+                                Content="New Order"
+                                Width="118"
+                                Height="32"
+                                Margin="12,0,0,0"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Visibility="{Binding CanCreatePurchaseOrders, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Click="OnNewOrder" />
+                    </Grid>
+
+                    <TextBlock Text="Search by order number, supplier, status, company, or reference."
+                               Margin="0,0,0,8"
+                               FontSize="12.5"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               TextWrapping="Wrap" />
+
+                    <TextBox Text="{Binding HistorySearchText, UpdateSourceTrigger=PropertyChanged, Delay=250}"
+                             Height="34"
+                             VerticalContentAlignment="Center"
+                             FontSize="14" />
+                </StackPanel>
+
+                <Border Grid.Column="2"
+                        Background="{StaticResource CardTintBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        Padding="14">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Workflow Tip"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="Double-click any order to open its full workflow, approve executive sign-off, upload invoices, export the PDF, or delete it before completion."
+                                   Margin="0,6,0,0"
+                                   FontSize="13"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2"
+                Style="{StaticResource CardBorderStyle}"
+                Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Margin="20,18,20,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Text="Order History"
+                                   Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="Open any order to manage executive approval, invoices, and PDF exports."
+                                   Margin="0,6,0,0"
+                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    </StackPanel>
+
+                    <Border Grid.Column="1"
+                            Background="{StaticResource CardTintBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="12,8"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="{Binding FilteredOrderHistory.Count, StringFormat={}{0} orders visible}"
+                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center" />
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="1"
+                      Margin="16,18,16,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <UniformGrid Margin="0,0,0,12"
+                                 Rows="1"
+                                 Columns="{Binding OrderHistorySummaryColumnCount}">
+                        <Button Margin="0,0,8,0"
+                                Padding="8,6"
+                                Style="{StaticResource HistorySummaryButtonStyle}"
+                                Background="#EAF7F9"
+                                BorderBrush="#9ED3DE"
+                                Click="OnAllOrdersTabClick">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="All Orders"
+                                           FontSize="11"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding TotalOrderCount}"
+                                           Margin="0,2,0,0"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Margin="0,0,8,0"
+                                Padding="8,6"
+                                Style="{StaticResource HistorySummaryButtonStyle}"
+                                Background="#EEF7FF"
+                                BorderBrush="#B9D8F0"
+                                Click="OnMyOrdersTabClick">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="My Orders"
+                                           FontSize="11"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding MyOrderCount}"
+                                           Margin="0,2,0,0"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Margin="0,0,8,0"
+                                Padding="8,6"
+                                Style="{StaticResource HistorySummaryButtonStyle}"
+                                Background="#FFF3D9"
+                                BorderBrush="#E3A533"
+                                Visibility="{Binding ShowAwaitingManagerSummary, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Click="OnAwaitingManagerTabClick">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="Awaiting Manager Approval"
+                                           FontSize="11"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding AwaitingManagerCount}"
+                                           Margin="0,2,0,0"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Margin="0,0,8,0"
+                                Padding="8,6"
+                                Style="{StaticResource HistorySummaryButtonStyle}"
+                                Background="#FCEAEA"
+                                BorderBrush="#D86B6B"
+                                Click="OnAwaitingExecutiveTabClick">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="Awaiting Executive Approval"
+                                           FontSize="11"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding AwaitingExecutiveCount}"
+                                           Margin="0,2,0,0"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Margin="0,0,8,0"
+                                Padding="8,6"
+                                Style="{StaticResource HistorySummaryButtonStyle}"
+                                Background="#F4F0FF"
+                                BorderBrush="#C8B8EA"
+                                Click="OnAwaitingInvoiceTabClick">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="Awaiting Invoice"
+                                           FontSize="11"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding AwaitingInvoiceCount}"
+                                           Margin="0,2,0,0"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Padding="8,6"
+                                Style="{StaticResource HistorySummaryButtonStyle}"
+                                Background="#EAF5EC"
+                                BorderBrush="#A7D2AF"
+                                Click="OnCompletedTabClick">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="Completed"
+                                           FontSize="11"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding CompletedOrderCount}"
+                                           Margin="0,2,0,0"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+
+                    <Grid Grid.Row="1">
+                        <DataGrid Margin="0"
+                                  ItemsSource="{Binding FilteredOrderHistory}"
+                                  SelectedItem="{Binding SelectedOrderHistoryItem}"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  RowStyle="{StaticResource UrgentOrderRowStyle}"
+                                  MouseDoubleClick="OnHistoryRowDoubleClick"
+                                  Visibility="{Binding HasVisibleOrders, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="10">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding RowAccent}"
+                                                    Width="6"
+                                                    HorizontalAlignment="Left"
+                                                    Margin="-8,-7,0,-7" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Order #" Binding="{Binding OrderNumber}" Width="140" />
+                                <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="120" />
+                                <DataGridTextColumn Header="Company" Binding="{Binding CompanyName}" Width="280" />
+                                <DataGridTextColumn Header="Bill To" Binding="{Binding BillTo}" Width="220" />
+                                <DataGridTextColumn Header="Manager" Binding="{Binding AssignedManagerDisplayName}" Width="180" />
+                                <DataGridTextColumn Header="Created By" Binding="{Binding CreatedByDisplayName}" Width="170" />
+                                <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="*" />
+                                <DataGridTemplateColumn Header="Status" Width="230">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal"
+                                                        VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding OrderStatus}"
+                                                           VerticalAlignment="Center"
+                                                           FontWeight="SemiBold" />
+                                                <Border Margin="8,0,0,0"
+                                                        Padding="7,2"
+                                                        CornerRadius="8"
+                                                        Background="{Binding ApprovalUrgencyBackground}"
+                                                        BorderBrush="{Binding ApprovalUrgencyBorder}"
+                                                        BorderThickness="1"
+                                                        Visibility="{Binding HasApprovalUrgency, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <TextBlock Text="{Binding ApprovalUrgencyText}"
+                                                               Foreground="{Binding ApprovalUrgencyForeground}"
+                                                               FontSize="11"
+                                                               FontWeight="SemiBold" />
+                                                </Border>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Total" Binding="{Binding TotalAmount, StringFormat=R {0:N2}}" Width="120" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <Border Style="{StaticResource CardBorderStyle}"
+                                Padding="18"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding HasNoVisibleOrders, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="{Binding EmptyHistoryMessage}"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="15" />
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+
+    <local:OrderEditorView x:Name="InlineOrderEditor"
+                           Visibility="Collapsed"
+                           CloseRequested="OnInlineOrderEditorCloseRequested" />
+    </Grid>
+</UserControl>

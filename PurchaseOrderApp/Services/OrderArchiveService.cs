@@ -32,15 +32,14 @@ internal static class OrderArchiveService
         try
         {
             var archiveViewModel = new MainViewModel();
-            if (!archiveViewModel.LoadExistingOrder(orderId) || archiveViewModel.CurrentOrder == null)
+            if (!archiveViewModel.LoadExistingOrder(orderId, skipAccessCheck: true) || archiveViewModel.CurrentOrder == null)
             {
                 ShowWarningIfRequested(showWarnings, $"I couldn't reload order {orderId} for archiving.", "Archive failed");
                 return false;
             }
 
             var order = archiveViewModel.CurrentOrder;
-            var archiveFolderPath = GetArchiveFolderPath(order);
-            Directory.CreateDirectory(archiveFolderPath);
+            var archiveFolderPath = GetWritableArchiveFolderPath(order);
 
             var orderPdfPath = Path.Combine(archiveFolderPath, OrderPdfFileName);
             var exportWindow = new OrderEditorWindow(archiveViewModel);
@@ -84,13 +83,48 @@ internal static class OrderArchiveService
         return !string.IsNullOrWhiteSpace(fileName) && content is { Length: > 0 };
     }
 
-    private static string GetArchiveFolderPath(PurchaseOrder order)
+    private static string GetWritableArchiveFolderPath(PurchaseOrder order)
     {
-        var documentsFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var preferredArchiveFolderPath = GetArchiveFolderPath(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            order);
+
+        if (TryPrepareWritableFolder(preferredArchiveFolderPath))
+        {
+            return preferredArchiveFolderPath;
+        }
+
+        var fallbackArchiveFolderPath = GetArchiveFolderPath(
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PurchaseOrderApp"),
+            order);
+        Directory.CreateDirectory(fallbackArchiveFolderPath);
+        return fallbackArchiveFolderPath;
+    }
+
+    private static string GetArchiveFolderPath(string rootFolder, PurchaseOrder order)
+    {
         var companyFolder = GetCompanyFolderName(order.Vendor?.Name);
         var orderFolder = $"{CleanFileNameSegment(order.OrderNumber, "Order")} - {order.Date:yyyy-MM-dd}";
 
-        return Path.Combine(documentsFolder, ArchiveRootFolderName, companyFolder, orderFolder);
+        return Path.Combine(rootFolder, ArchiveRootFolderName, companyFolder, orderFolder);
+    }
+
+    private static bool TryPrepareWritableFolder(string folderPath)
+    {
+        try
+        {
+            Directory.CreateDirectory(folderPath);
+            var probePath = Path.Combine(folderPath, $".write-test-{Guid.NewGuid():N}.tmp");
+            using (File.Create(probePath, 1, FileOptions.DeleteOnClose))
+            {
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static string GetCompanyFolderName(string? companyName)

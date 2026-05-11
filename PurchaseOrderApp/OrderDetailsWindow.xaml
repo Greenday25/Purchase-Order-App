@@ -130,8 +130,13 @@
                 <StackPanel Grid.Column="4">
                     <TextBlock Text="Workflow"
                                Style="{StaticResource FieldLabelStyle}" />
+                    <TextBlock Text="{Binding AssignedManagerDisplayName, StringFormat=Manager: {0}}"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
                     <TextBlock Text="{Binding ApprovalStatus, StringFormat=Approval: {0}}"
-                               FontWeight="SemiBold" />
+                               Margin="0,4,0,0"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="6">
@@ -298,12 +303,13 @@
                                 Width="92"
                                 Height="34"
                                 Style="{StaticResource PrimaryButtonStyle}"
+                                IsEnabled="{Binding CanUploadInvoice}"
                                 Click="OnUploadInvoice" />
                         <Button Content="Open"
                                 Width="82"
                                 Height="34"
                                 Margin="8,0,0,0"
-                                IsEnabled="{Binding HasInvoice}"
+                                IsEnabled="{Binding CanOpenInvoice}"
                                 Click="OnOpenInvoice" />
                     </StackPanel>
                 </Grid>
@@ -317,7 +323,7 @@
                         <TextBlock Text="Order Maintenance"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource DangerDarkBrush}" />
-                        <TextBlock Text="Delete is only available before completion."
+                        <TextBlock Text="{Binding DeleteRestrictionMessage}"
                                    Margin="0,4,0,0"
                                    Foreground="{StaticResource DangerDarkBrush}"
                                    TextWrapping="Wrap" />

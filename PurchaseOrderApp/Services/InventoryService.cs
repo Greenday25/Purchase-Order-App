@@ -628,6 +628,10 @@ internal sealed class InventoryService
     private static void EnsureSchema(PurchaseOrderContext db)
     {
         db.Database.EnsureCreated();
+        if (!db.Database.IsSqlite())
+        {
+            return;
+        }
 
         db.Database.ExecuteSqlRaw(
             """

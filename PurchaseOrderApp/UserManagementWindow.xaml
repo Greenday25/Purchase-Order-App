@@ -98,6 +98,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <TextBlock Text="User Name"
@@ -159,7 +160,45 @@
                                        FontSize="12"
                                        Foreground="{StaticResource SecondaryTextBrush}" />
 
-                            <StackPanel Grid.Row="5"
+                            <Border Grid.Row="5"
+                                    Margin="0,12,0,0"
+                                    Padding="10"
+                                    Background="White"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel>
+                                        <TextBlock Text="Digital Signature"
+                                                   Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBlock x:Name="SignatureStatusTextBlock"
+                                                   Text="Select an existing user to upload a signature."
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                   TextWrapping="Wrap" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                VerticalAlignment="Center">
+                                        <Button Content="Upload"
+                                                Width="78"
+                                                Click="OnUploadSignature" />
+                                        <Button Content="Remove"
+                                                Width="78"
+                                                Margin="8,0,0,0"
+                                                Style="{StaticResource DangerButtonStyle}"
+                                                Click="OnRemoveSignature" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <StackPanel Grid.Row="6"
                                         Orientation="Horizontal"
                                         HorizontalAlignment="Right"
                                         Margin="0,14,0,0">

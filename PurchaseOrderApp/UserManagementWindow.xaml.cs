@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 using PurchaseOrderApp.Models;
 using PurchaseOrderApp.Services;
 
@@ -52,6 +53,9 @@ public partial class UserManagementWindow : Window
         UserConfirmPasswordBox.Password = string.Empty;
         UserRoleComboBox.SelectedValue = selectedUser.AppRoleId;
         UserActiveCheckBox.IsChecked = selectedUser.IsActive;
+        SignatureStatusTextBlock.Text = selectedUser.SignatureContent is { Length: > 0 }
+            ? $"Signature uploaded: {selectedUser.SignatureFileName}"
+            : "No signature uploaded for this user.";
     }
 
     private void OnNewUser(object sender, RoutedEventArgs e)
@@ -126,6 +130,64 @@ public partial class UserManagementWindow : Window
         }
     }
 
+    private void OnUploadSignature(object sender, RoutedEventArgs e)
+    {
+        if (selectedUser is null)
+        {
+            ShowAccessError("Select an existing user before uploading a signature.");
+            return;
+        }
+
+        var dialog = new OpenFileDialog
+        {
+            Title = $"Upload signature for {selectedUser.DisplayName}",
+            Filter = "Signature images|*.png;*.jpg;*.jpeg|All files|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            userAccessService.SaveUserSignature(
+                selectedUser.AppUserId,
+                System.IO.Path.GetFileName(dialog.FileName),
+                System.IO.File.ReadAllBytes(dialog.FileName));
+            ReloadAccessLists();
+            ReselectUser(selectedUser.AppUserId);
+            StatusTextBlock.Text = "Signature uploaded.";
+        }
+        catch (Exception ex)
+        {
+            ShowAccessError(ex.Message);
+        }
+    }
+
+    private void OnRemoveSignature(object sender, RoutedEventArgs e)
+    {
+        if (selectedUser is null)
+        {
+            ShowAccessError("Select an existing user before removing a signature.");
+            return;
+        }
+
+        try
+        {
+            userAccessService.RemoveUserSignature(selectedUser.AppUserId);
+            ReloadAccessLists();
+            ReselectUser(selectedUser.AppUserId);
+            StatusTextBlock.Text = "Signature removed.";
+        }
+        catch (Exception ex)
+        {
+            ShowAccessError(ex.Message);
+        }
+    }
+
     private void OnAddRole(object sender, RoutedEventArgs e)
     {
         try
@@ -192,6 +254,17 @@ public partial class UserManagementWindow : Window
         UserConfirmPasswordBox.Password = string.Empty;
         UserActiveCheckBox.IsChecked = true;
         UserRoleComboBox.SelectedIndex = UserRoleComboBox.Items.Count > 0 ? 0 : -1;
+        SignatureStatusTextBlock.Text = "Select an existing user to upload a signature.";
+    }
+
+    private void ReselectUser(int appUserId)
+    {
+        if (UsersGrid.ItemsSource is not IEnumerable<AppUser> users)
+        {
+            return;
+        }
+
+        UsersGrid.SelectedItem = users.FirstOrDefault(user => user.AppUserId == appUserId);
     }
 
     private void ValidatePasswordFields(bool requirePassword)

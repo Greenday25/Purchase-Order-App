@@ -22,9 +22,11 @@ public partial class OrderDetailsWindow : Window
         LoadOrderDetails();
     }
 
+    public bool HasLoadedOrder { get; private set; }
+
     private OrderDetailsViewModel? CurrentOrderDetails => DataContext as OrderDetailsViewModel;
 
-    private void OnMarkManagerApproved(object sender, RoutedEventArgs e)
+    private async void OnMarkManagerApproved(object sender, RoutedEventArgs e)
     {
         var order = GetCurrentOrderDetails();
         if (order == null)
@@ -56,16 +58,16 @@ public partial class OrderDetailsWindow : Window
             return;
         }
 
-        if (!_mainViewModel.MarkManagerApproved(_purchaseOrderId))
+        if (!await _mainViewModel.MarkManagerApprovedAsync(_purchaseOrderId))
         {
             MessageBox.Show("I couldn't update the approval status for that order.", "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        LoadOrderDetails();
+        Close();
     }
 
-    private void OnMarkDirectorApproved(object sender, RoutedEventArgs e)
+    private async void OnMarkDirectorApproved(object sender, RoutedEventArgs e)
     {
         var order = GetCurrentOrderDetails();
         if (order == null)
@@ -103,16 +105,16 @@ public partial class OrderDetailsWindow : Window
             return;
         }
 
-        if (!_mainViewModel.MarkDirectorApproved(_purchaseOrderId))
+        if (!await _mainViewModel.MarkDirectorApprovedAsync(_purchaseOrderId))
         {
             MessageBox.Show("I couldn't update the approval status for that order.", "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        LoadOrderDetails();
+        Close();
     }
 
-    private void OnAmendOrder(object sender, RoutedEventArgs e)
+    private async void OnAmendOrder(object sender, RoutedEventArgs e)
     {
         var order = GetCurrentOrderDetails();
         if (order == null)
@@ -127,6 +129,7 @@ public partial class OrderDetailsWindow : Window
         }
 
         var editViewModel = new MainViewModel();
+        editViewModel.CopyAccessContextFrom(_mainViewModel);
         if (!editViewModel.LoadExistingOrder(_purchaseOrderId))
         {
             MessageBox.Show("I couldn't load that order for amendment.", "Amend failed", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -139,11 +142,11 @@ public partial class OrderDetailsWindow : Window
         };
 
         editorWindow.ShowDialog();
-        _mainViewModel.LoadOrderHistory();
+        await _mainViewModel.LoadOrderHistoryAsync();
         LoadOrderDetails();
     }
 
-    private void OnMarkRejected(object sender, RoutedEventArgs e)
+    private async void OnMarkRejected(object sender, RoutedEventArgs e)
     {
         var order = GetCurrentOrderDetails();
         if (order == null)
@@ -163,7 +166,7 @@ public partial class OrderDetailsWindow : Window
             return;
         }
 
-        if (!_mainViewModel.MarkRejected(_purchaseOrderId))
+        if (!await _mainViewModel.MarkRejectedAsync(_purchaseOrderId))
         {
             MessageBox.Show("I couldn't update the rejected status for that order.", "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
@@ -192,7 +195,7 @@ public partial class OrderDetailsWindow : Window
         OpenDocument(isInvoice: true);
     }
 
-    private void OnDeleteOrder(object sender, RoutedEventArgs e)
+    private async void OnDeleteOrder(object sender, RoutedEventArgs e)
     {
         var order = GetCurrentOrderDetails();
         if (order == null)
@@ -200,9 +203,9 @@ public partial class OrderDetailsWindow : Window
             return;
         }
 
-        if (order.IsCompleted)
+        if (!order.CanDelete)
         {
-            MessageBox.Show("Completed orders cannot be deleted.", "Delete blocked", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(order.DeleteRestrictionMessage, "Delete blocked", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -217,7 +220,7 @@ public partial class OrderDetailsWindow : Window
             return;
         }
 
-        if (!_mainViewModel.DeleteOrder(_purchaseOrderId))
+        if (!await _mainViewModel.DeleteOrderAsync(_purchaseOrderId))
         {
             MessageBox.Show("I couldn't delete that order.", "Delete failed", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
@@ -229,6 +232,7 @@ public partial class OrderDetailsWindow : Window
     private void OnExportPdf(object sender, RoutedEventArgs e)
     {
         var exportViewModel = new MainViewModel();
+        exportViewModel.CopyAccessContextFrom(_mainViewModel);
         if (!exportViewModel.LoadExistingOrder(_purchaseOrderId))
         {
             MessageBox.Show("I couldn't load that order for PDF export.", "Export failed", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -248,7 +252,7 @@ public partial class OrderDetailsWindow : Window
         Close();
     }
 
-    private void UploadDocument(string documentLabel, bool isInvoice)
+    private async void UploadDocument(string documentLabel, bool isInvoice)
     {
         var order = GetCurrentOrderDetails();
         if (order == null)
@@ -268,6 +272,12 @@ public partial class OrderDetailsWindow : Window
             return;
         }
 
+        if (isInvoice && !order.CanUploadInvoice)
+        {
+            MessageBox.Show("Executive users can upload invoices only for purchase orders they created.", "Invoice restricted", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
         var dialog = new OpenFileDialog
         {
             Title = $"Upload {documentLabel} for {order.OrderNumber}",
@@ -284,8 +294,8 @@ public partial class OrderDetailsWindow : Window
         var fileBytes = File.ReadAllBytes(dialog.FileName);
         var fileName = Path.GetFileName(dialog.FileName);
         var wasSaved = isInvoice
-            ? _mainViewModel.SaveInvoiceDocument(_purchaseOrderId, fileName, fileBytes)
-            : _mainViewModel.SaveSignedOrderDocument(_purchaseOrderId, fileName, fileBytes);
+            ? await _mainViewModel.SaveInvoiceDocumentAsync(_purchaseOrderId, fileName, fileBytes)
+            : await _mainViewModel.SaveSignedOrderDocumentAsync(_purchaseOrderId, fileName, fileBytes);
 
         if (!wasSaved)
         {
@@ -298,6 +308,18 @@ public partial class OrderDetailsWindow : Window
 
     private void OpenDocument(bool isInvoice)
     {
+        var order = GetCurrentOrderDetails();
+        if (order == null)
+        {
+            return;
+        }
+
+        if (isInvoice && !order.CanOpenInvoice)
+        {
+            MessageBox.Show("Invoices are visible only to the user who created the purchase order.", "Invoice restricted", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
         var storedDocument = isInvoice
             ? _mainViewModel.GetInvoiceDocument(_purchaseOrderId)
             : _mainViewModel.GetSignedOrderDocument(_purchaseOrderId);
@@ -331,11 +353,16 @@ public partial class OrderDetailsWindow : Window
         var orderDetails = _mainViewModel.GetOrderDetails(_purchaseOrderId);
         if (orderDetails == null)
         {
+            HasLoadedOrder = false;
             MessageBox.Show("I couldn't load that order's details.", "Order not found", MessageBoxButton.OK, MessageBoxImage.Warning);
-            Close();
+            if (IsVisible)
+            {
+                Close();
+            }
             return;
         }
 
+        HasLoadedOrder = true;
         DataContext = orderDetails;
     }
 }

@@ -11,23 +11,53 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace PurchaseOrderApp.ViewModels
 {
     public partial class MainViewModel : ObservableObject
     {
+        public enum OrderHistoryScope
+        {
+            All,
+            MyOrders,
+            AwaitingManager,
+            AwaitingExecutive,
+            AwaitingInvoice,
+            Completed
+        }
+
         public sealed record StoredOrderDocument(string FileName, byte[] Content);
+        private sealed record PurchaseOrderHistoryProjection(
+            int PurchaseOrderId,
+            string OrderNumber,
+            DateTime Date,
+            DateTime UpdatedAt,
+            string CompanyName,
+            string BillTo,
+            string Reference,
+            string CreatedByDisplayName,
+            int? CreatedByAppUserId,
+            string AssignedManagerDisplayName,
+            int? AssignedManagerAppUserId,
+            decimal TotalAmount,
+            DateTime? ManagerApprovedAt,
+            DateTime? DirectorApprovedAt,
+            DateTime? SupplierCopySentAt,
+            DateTime? RejectedAt,
+            string? SignedOrderFileName,
+            string? InvoiceFileName);
+
         private ObservableCollection<PurchaseOrderLine>? observedLines;
+        private int? signedInUserAppUserId;
+        private string signedInUserDisplayName = string.Empty;
+        private string signedInUserRoleName = string.Empty;
+        private DateTime? lastHistoryRefreshAt;
+        private readonly Task initializationTask;
 
         private const string CapitalAirCompanyName = "CAPITAL AIR (Pty) Ltd";
-        private const string ReactionServicesOrderPrefix = "CARS";
         private const string SecurityOperationsCompanyName = "Capital Air Security Operations (Pty) Ltd";
-        private const string SecurityOperationsOrderPrefix = "CASO";
         private const int OrderSequenceDigits = 5;
         private const int OrderSequenceStartingValue = 100;
-        private const int NameDisplayFormat = 3;
         private const string ReactionServicesCompanyName = "Capital Air Reaction Services CC";
         private const string LegacyReactionServicesCompanyName = "Capital Air Reaction Services (Pty) Ltd";
         private static readonly Vendor[] DefaultCompanies =
@@ -55,42 +85,99 @@ namespace PurchaseOrderApp.ViewModels
             }
         ];
 
-        [DllImport("Secur32.dll", EntryPoint = "GetUserNameExW", CharSet = CharSet.Unicode, SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool GetUserNameEx(int nameFormat, StringBuilder userName, ref uint userNameSize);
-
         public MainViewModel()
         {
-            InitializeModel();
-            LoadOrderHistory();
+            initializationTask = InitializeModelAsync();
         }
 
         public bool CanManagerApprovePurchaseOrders { get; private set; }
 
         public bool CanApprovePurchaseOrders { get; private set; }
 
+        public bool CanCreatePurchaseOrders =>
+            !string.Equals(signedInUserRoleName, "Manager", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(signedInUserRoleName, "Executive", StringComparison.OrdinalIgnoreCase);
+
+        public bool IsExecutiveRole => CanApprovePurchaseOrders;
+
+        public bool IsManagerRole => CanManagerApprovePurchaseOrders && !CanApprovePurchaseOrders;
+
+        public bool ShowAwaitingManagerSummary =>
+            !string.Equals(signedInUserRoleName, "Executive", StringComparison.OrdinalIgnoreCase);
+
+        public int OrderHistorySummaryColumnCount => ShowAwaitingManagerSummary ? 6 : 5;
+
+        public string RoleFocusedDashboardTitle => IsExecutiveRole
+            ? "Executive Approval Dashboard"
+            : IsManagerRole
+                ? "Manager Approval Dashboard"
+                : "Purchase Order Dashboard";
+
+        public string RoleFocusedDashboardSubtitle => IsExecutiveRole
+            ? "Review manager-approved orders and finish executive sign-off."
+            : IsManagerRole
+                ? "Review the orders assigned to you and complete manager approvals."
+                : "Create and manage your purchase orders through to invoice completion.";
+
         public string ApprovalAccessStatus =>
             CanManagerApprovePurchaseOrders || CanApprovePurchaseOrders
                 ? "Purchase order approval access enabled."
                 : "Purchase order approval access required.";
 
-        public void SetSignedInUser(AppUser? user)
+        public async Task SetSignedInUserAsync(AppUser? user)
         {
+            signedInUserAppUserId = user?.AppUserId;
+            signedInUserDisplayName = user?.DisplayName ?? string.Empty;
+            signedInUserRoleName = user?.Role?.Name ?? string.Empty;
             CanManagerApprovePurchaseOrders = user?.Role?.CanManagerApprovePurchaseOrders == true;
             CanApprovePurchaseOrders = user?.Role?.CanApprovePurchaseOrders == true;
+            await initializationTask;
+            await LoadManagerApproversAsync();
             OnPropertyChanged(nameof(CanManagerApprovePurchaseOrders));
             OnPropertyChanged(nameof(CanApprovePurchaseOrders));
+            OnPropertyChanged(nameof(CanCreatePurchaseOrders));
             OnPropertyChanged(nameof(ApprovalAccessStatus));
+            OnPropertyChanged(nameof(IsExecutiveRole));
+            OnPropertyChanged(nameof(IsManagerRole));
+            OnPropertyChanged(nameof(ShowAwaitingManagerSummary));
+            OnPropertyChanged(nameof(OrderHistorySummaryColumnCount));
+            OnPropertyChanged(nameof(RoleFocusedDashboardTitle));
+            OnPropertyChanged(nameof(RoleFocusedDashboardSubtitle));
+            SelectedHistoryScope = IsExecutiveRole
+                ? OrderHistoryScope.AwaitingExecutive
+                : IsManagerRole
+                    ? OrderHistoryScope.AwaitingManager
+                    : OrderHistoryScope.MyOrders;
+            RefreshOrderNumber();
+            lastHistoryRefreshAt = null;
+            await LoadOrderHistoryAsync(forceFullRefresh: true);
         }
 
-        private void InitializeModel()
+        public void CopyAccessContextFrom(MainViewModel source)
+        {
+            signedInUserAppUserId = source.signedInUserAppUserId;
+            signedInUserDisplayName = source.signedInUserDisplayName;
+            signedInUserRoleName = source.signedInUserRoleName;
+            CanManagerApprovePurchaseOrders = source.CanManagerApprovePurchaseOrders;
+            CanApprovePurchaseOrders = source.CanApprovePurchaseOrders;
+            OnPropertyChanged(nameof(CanManagerApprovePurchaseOrders));
+            OnPropertyChanged(nameof(CanApprovePurchaseOrders));
+            OnPropertyChanged(nameof(CanCreatePurchaseOrders));
+            OnPropertyChanged(nameof(ApprovalAccessStatus));
+            OnPropertyChanged(nameof(IsExecutiveRole));
+            OnPropertyChanged(nameof(IsManagerRole));
+            OnPropertyChanged(nameof(ShowAwaitingManagerSummary));
+            OnPropertyChanged(nameof(OrderHistorySummaryColumnCount));
+            OnPropertyChanged(nameof(RoleFocusedDashboardTitle));
+            OnPropertyChanged(nameof(RoleFocusedDashboardSubtitle));
+        }
+
+        private async Task InitializeModelAsync()
         {
             using var db = new PurchaseOrderContext();
-            db.Database.EnsureCreated();
-            EnsureDatabaseSchema(db);
+            db.MigrateSafely();
 
-            EnsureDefaultCompanies(db);
-            NormalizeExistingOrderNumbers(db);
+            await EnsureDefaultCompaniesAsync(db);
 
             Vendors = new ObservableCollection<Vendor>(db.Vendors.ToList());
             SelectedVendor = Vendors.FirstOrDefault();
@@ -111,9 +198,10 @@ namespace PurchaseOrderApp.ViewModels
 
             SetLinesCollection(new ObservableCollection<PurchaseOrderLine>(CurrentOrder.Lines));
             RefreshOrderNumber(db);
+            await LoadOrderHistoryAsync();
         }
 
-        private static void EnsureDefaultCompanies(PurchaseOrderContext db)
+        private static async Task EnsureDefaultCompaniesAsync(PurchaseOrderContext db)
         {
             bool hasChanges = false;
             var legacyReactionVendor = db.Vendors.FirstOrDefault(v => v.Name == LegacyReactionServicesCompanyName);
@@ -173,7 +261,7 @@ namespace PurchaseOrderApp.ViewModels
 
             if (hasChanges)
             {
-                db.SaveChanges();
+                await db.SaveChangesAsync();
             }
         }
 
@@ -182,6 +270,23 @@ namespace PurchaseOrderApp.ViewModels
 
         [ObservableProperty]
         private Vendor selectedVendor;
+
+        [ObservableProperty]
+        private ObservableCollection<AppUser> managerApprovers = [];
+
+        [ObservableProperty]
+        private AppUser? selectedManagerApprover;
+
+        partial void OnSelectedManagerApproverChanged(AppUser? value)
+        {
+            if (CurrentOrder == null)
+            {
+                return;
+            }
+
+            CurrentOrder.AssignedManagerAppUserId = value?.AppUserId;
+            CurrentOrder.AssignedManagerDisplayName = NormalizeText(value?.DisplayName);
+        }
 
         partial void OnSelectedVendorChanged(Vendor value)
         {
@@ -277,10 +382,39 @@ namespace PurchaseOrderApp.ViewModels
         [ObservableProperty]
         private int visibleOrderCount;
 
+        [ObservableProperty]
+        private int myOrderCount;
+
+        [ObservableProperty]
+        private int awaitingManagerCount;
+
+        [ObservableProperty]
+        private int awaitingExecutiveCount;
+
+        [ObservableProperty]
+        private int awaitingInvoiceCount;
+
+        [ObservableProperty]
+        private OrderHistoryScope selectedHistoryScope = OrderHistoryScope.All;
+
+        public bool HasVisibleOrders => FilteredOrderHistory.Count > 0;
+
+        public bool HasNoVisibleOrders => !HasVisibleOrders;
+
+        public string EmptyHistoryMessage => SelectedHistoryScope switch
+        {
+            OrderHistoryScope.MyOrders => "No purchase orders created by you yet.",
+            OrderHistoryScope.AwaitingManager => "No purchase orders are awaiting manager approval.",
+            OrderHistoryScope.AwaitingExecutive => "No purchase orders are awaiting executive approval.",
+            OrderHistoryScope.AwaitingInvoice => "No approved purchase orders are awaiting invoice upload.",
+            OrderHistoryScope.Completed => "No completed purchase orders yet.",
+            _ => "No purchase orders match the current filters."
+        };
+
         [RelayCommand]
         private void AddLine()
         {
-            Lines.Add(new PurchaseOrderLine { Quantity = 1, PartNumber = "", Description = "", UnitPrice = 0m });
+            Lines.Add(new PurchaseOrderLine { PartNumber = "", Description = "" });
             RefreshTotals();
         }
 
@@ -299,12 +433,12 @@ namespace PurchaseOrderApp.ViewModels
         }
 
         [RelayCommand]
-        public void RefreshHistory()
+        public async Task RefreshHistoryAsync()
         {
-            LoadOrderHistory();
+            await LoadOrderHistoryAsync();
         }
 
-        public bool MarkManagerApproved(int orderId)
+        public async Task<bool> MarkManagerApprovedAsync(int orderId)
         {
             if (!CanManagerApprovePurchaseOrders)
             {
@@ -312,19 +446,24 @@ namespace PurchaseOrderApp.ViewModels
             }
 
             var didUpdate = false;
-            return UpdateOrderWorkflow(orderId, order =>
+            return await UpdateOrderWorkflowAsync(orderId, order =>
             {
-                if (order.ManagerApprovedAt.HasValue || order.RejectedAt.HasValue || !string.IsNullOrWhiteSpace(order.InvoiceFileName))
+                if (!CanCurrentUserManagerApprove(order) ||
+                    order.ManagerApprovedAt.HasValue ||
+                    order.RejectedAt.HasValue ||
+                    !string.IsNullOrWhiteSpace(order.InvoiceFileName))
                 {
                     return;
                 }
 
                 order.ManagerApprovedAt = DateTime.Now;
+                order.ManagerApprovedByAppUserId = signedInUserAppUserId;
+                order.ManagerApprovedByDisplayName = NormalizeText(signedInUserDisplayName);
                 didUpdate = true;
             }) && didUpdate;
         }
 
-        public bool MarkDirectorApproved(int orderId)
+        public async Task<bool> MarkDirectorApprovedAsync(int orderId)
         {
             if (!CanApprovePurchaseOrders)
             {
@@ -332,7 +471,7 @@ namespace PurchaseOrderApp.ViewModels
             }
 
             var didUpdate = false;
-            return UpdateOrderWorkflow(orderId, order =>
+            return await UpdateOrderWorkflowAsync(orderId, order =>
             {
                 if (!order.ManagerApprovedAt.HasValue ||
                     order.DirectorApprovedAt.HasValue ||
@@ -343,43 +482,44 @@ namespace PurchaseOrderApp.ViewModels
                 }
 
                 order.DirectorApprovedAt = DateTime.Now;
+                order.DirectorApprovedByAppUserId = signedInUserAppUserId;
+                order.DirectorApprovedByDisplayName = NormalizeText(signedInUserDisplayName);
                 didUpdate = true;
             }) && didUpdate;
         }
 
-        public bool MarkRejected(int orderId)
+        public async Task<bool> MarkRejectedAsync(int orderId)
         {
-            return UpdateOrderWorkflow(orderId, order => order.RejectedAt ??= DateTime.Now);
+            return await UpdateOrderWorkflowAsync(orderId, order => order.RejectedAt ??= DateTime.Now);
         }
 
-        public bool DeleteOrder(int orderId)
+        public async Task<bool> DeleteOrderAsync(int orderId)
         {
             using var db = new PurchaseOrderContext();
-            EnsureDatabaseSchema(db);
 
             var order = db.PurchaseOrders
                 .Include(item => item.Lines)
                 .FirstOrDefault(item => item.PurchaseOrderId == orderId);
 
-            if (order == null || order.InvoiceContent != null || !string.IsNullOrWhiteSpace(order.InvoiceFileName))
+            if (order == null || !CanDeleteOrder(order))
             {
                 return false;
             }
 
             db.PurchaseOrders.Remove(order);
-            db.SaveChanges();
-            LoadOrderHistory(db);
+            await db.SaveChangesAsync();
+            await LoadOrderHistoryAsync(db, forceFullRefresh: true);
             return true;
         }
 
-        public bool SaveSignedOrderDocument(int orderId, string fileName, byte[] content)
+        public async Task<bool> SaveSignedOrderDocumentAsync(int orderId, string fileName, byte[] content)
         {
-            return SaveOrderDocument(orderId, fileName, content, isInvoice: false);
+            return await SaveOrderDocumentAsync(orderId, fileName, content, isInvoice: false);
         }
 
-        public bool SaveInvoiceDocument(int orderId, string fileName, byte[] content)
+        public async Task<bool> SaveInvoiceDocumentAsync(int orderId, string fileName, byte[] content)
         {
-            return SaveOrderDocument(orderId, fileName, content, isInvoice: true);
+            return await SaveOrderDocumentAsync(orderId, fileName, content, isInvoice: true);
         }
 
         public StoredOrderDocument? GetSignedOrderDocument(int orderId)
@@ -395,7 +535,6 @@ namespace PurchaseOrderApp.ViewModels
         public OrderDetailsViewModel? GetOrderDetails(int orderId)
         {
             using var db = new PurchaseOrderContext();
-            EnsureDatabaseSchema(db);
             var inventoryService = new InventoryService();
 
             var order = db.PurchaseOrders
@@ -404,7 +543,7 @@ namespace PurchaseOrderApp.ViewModels
                 .Include(item => item.Lines)
                 .FirstOrDefault(item => item.PurchaseOrderId == orderId);
 
-            if (order == null)
+            if (order == null || !CanCurrentUserSeeOrder(order))
             {
                 return null;
             }
@@ -422,6 +561,8 @@ namespace PurchaseOrderApp.ViewModels
                 })
                 .ToList();
 
+            var canOpenInvoice = CanCurrentUserOpenInvoice(order);
+
             return new OrderDetailsViewModel
             {
                 PurchaseOrderId = order.PurchaseOrderId,
@@ -431,6 +572,8 @@ namespace PurchaseOrderApp.ViewModels
                 BillTo = order.BillTo,
                 BillToAddress = order.BillToAddress,
                 Reference = order.Reference,
+                CreatedByDisplayName = order.CreatedByDisplayName ?? string.Empty,
+                AssignedManagerDisplayName = order.AssignedManagerDisplayName ?? string.Empty,
                 OrderStatus = OrderHistoryItem.GetOrderStatus(
                     order.ManagerApprovedAt,
                     order.DirectorApprovedAt,
@@ -443,13 +586,17 @@ namespace PurchaseOrderApp.ViewModels
                 RejectionStatus = FormatWorkflowStatus(order.RejectedAt, "Active"),
                 TotalAmount = order.Total,
                 SignedOrderFileName = string.IsNullOrWhiteSpace(order.SignedOrderFileName) ? "Not Uploaded" : order.SignedOrderFileName,
-                InvoiceFileName = string.IsNullOrWhiteSpace(order.InvoiceFileName) ? "Not Uploaded" : order.InvoiceFileName,
+                InvoiceFileName = !HasInvoice(order)
+                    ? "Not Uploaded"
+                    : canOpenInvoice
+                        ? order.InvoiceFileName!
+                        : "Restricted",
                 IsApproved = HasFullApproval(order),
                 IsManagerApproved = order.ManagerApprovedAt.HasValue || !string.IsNullOrWhiteSpace(order.SignedOrderFileName),
                 IsDirectorApproved = order.DirectorApprovedAt.HasValue || !string.IsNullOrWhiteSpace(order.SignedOrderFileName),
                 IsRejected = order.RejectedAt.HasValue,
                 IsCompleted = !string.IsNullOrWhiteSpace(order.InvoiceFileName),
-                CanManagerApprove = CanManagerApprovePurchaseOrders &&
+                CanManagerApprove = CanCurrentUserManagerApprove(order) &&
                     !order.ManagerApprovedAt.HasValue &&
                     !order.RejectedAt.HasValue &&
                     string.IsNullOrWhiteSpace(order.InvoiceFileName),
@@ -458,7 +605,11 @@ namespace PurchaseOrderApp.ViewModels
                     !order.DirectorApprovedAt.HasValue &&
                     !order.RejectedAt.HasValue &&
                     string.IsNullOrWhiteSpace(order.InvoiceFileName),
+                CanUploadInvoice = CanCurrentUserUploadInvoice(order),
+                CanOpenInvoice = canOpenInvoice,
                 CanAmend = CanAmendOrder(order),
+                CanDelete = CanDeleteOrder(order),
+                DeleteRestrictionMessage = GetDeleteRestrictionMessage(order),
                 LinkedReceipts = new ObservableCollection<OrderReceiptItemViewModel>(linkedReceipts),
                 Lines = new ObservableCollection<OrderDetailsLineItem>(
                     order.Lines.Select(line => new OrderDetailsLineItem
@@ -471,10 +622,9 @@ namespace PurchaseOrderApp.ViewModels
             };
         }
 
-        public bool LoadExistingOrder(int orderId)
+        public bool LoadExistingOrder(int orderId, bool skipAccessCheck = false)
         {
             using var db = new PurchaseOrderContext();
-            EnsureDatabaseSchema(db);
 
             var order = db.PurchaseOrders
                 .AsNoTracking()
@@ -482,7 +632,7 @@ namespace PurchaseOrderApp.ViewModels
                 .Include(item => item.Lines)
                 .FirstOrDefault(item => item.PurchaseOrderId == orderId);
 
-            if (order == null)
+            if (order == null || (!skipAccessCheck && !CanCurrentUserSeeOrder(order)))
             {
                 return false;
             }
@@ -509,6 +659,9 @@ namespace PurchaseOrderApp.ViewModels
                 PurchaseOrderId = order.PurchaseOrderId,
                 OrderNumber = order.OrderNumber,
                 OrderNumberManuallyEdited = order.OrderNumberManuallyEdited,
+                UpdatedAt = order.UpdatedAt,
+                AssignedManagerAppUserId = order.AssignedManagerAppUserId,
+                AssignedManagerDisplayName = order.AssignedManagerDisplayName,
                 Date = order.Date,
                 Reference = order.Reference,
                 VendorId = selectedVendor?.VendorId ?? order.VendorId,
@@ -518,16 +671,24 @@ namespace PurchaseOrderApp.ViewModels
                 IncludeVat = order.IncludeVat,
                 VATPercent = order.VATPercent,
                 ManagerApprovedAt = order.ManagerApprovedAt,
+                ManagerApprovedByAppUserId = order.ManagerApprovedByAppUserId,
+                ManagerApprovedByDisplayName = order.ManagerApprovedByDisplayName,
                 DirectorApprovedAt = order.DirectorApprovedAt,
+                DirectorApprovedByAppUserId = order.DirectorApprovedByAppUserId,
+                DirectorApprovedByDisplayName = order.DirectorApprovedByDisplayName,
                 SupplierCopySentAt = order.SupplierCopySentAt,
                 RejectedAt = order.RejectedAt,
                 SignedOrderFileName = order.SignedOrderFileName,
                 SignedOrderContent = order.SignedOrderContent,
                 InvoiceFileName = order.InvoiceFileName,
+                InvoiceUploadedByAppUserId = order.InvoiceUploadedByAppUserId,
+                InvoiceUploadedByDisplayName = order.InvoiceUploadedByDisplayName,
+                InvoiceUploadedAt = order.InvoiceUploadedAt,
                 InvoiceContent = order.InvoiceContent,
                 Lines = copiedLines
             };
 
+            SelectedManagerApprover = ManagerApprovers.FirstOrDefault(manager => manager.AppUserId == order.AssignedManagerAppUserId);
             SelectedVendor = selectedVendor ?? Vendors.FirstOrDefault();
             SetLinesCollection(new ObservableCollection<PurchaseOrderLine>(copiedLines));
             RefreshTotals();
@@ -535,18 +696,17 @@ namespace PurchaseOrderApp.ViewModels
         }
 
         [RelayCommand]
-        public void SavePurchaseOrder()
+        public async Task SavePurchaseOrderAsync()
         {
-            TrySavePurchaseOrder();
+            await TrySavePurchaseOrderAsync();
         }
 
-        public bool TrySavePurchaseOrder()
+        public async Task<bool> TrySavePurchaseOrderAsync()
         {
             RefreshTotals();
             LastSaveError = string.Empty;
 
             using var db = new PurchaseOrderContext();
-            EnsureDatabaseSchema(db);
 
             if (!ValidatePurchaseOrderForSave(db))
             {
@@ -555,7 +715,13 @@ namespace PurchaseOrderApp.ViewModels
 
             if (CurrentOrder.PurchaseOrderId > 0)
             {
-                return UpdateExistingPurchaseOrder(db);
+                return await UpdateExistingPurchaseOrderAsync(db);
+            }
+
+            if (!CanCreatePurchaseOrders)
+            {
+                LastSaveError = "Managers and executives cannot create purchase orders.";
+                return false;
             }
 
             if (string.IsNullOrWhiteSpace(CurrentOrder.OrderNumber))
@@ -576,6 +742,11 @@ namespace PurchaseOrderApp.ViewModels
             {
                 OrderNumber = CurrentOrder.OrderNumber,
                 OrderNumberManuallyEdited = CurrentOrder.OrderNumberManuallyEdited,
+                UpdatedAt = DateTime.Now,
+                CreatedByAppUserId = signedInUserAppUserId,
+                CreatedByDisplayName = NormalizeText(signedInUserDisplayName),
+                AssignedManagerAppUserId = CurrentOrder.AssignedManagerAppUserId,
+                AssignedManagerDisplayName = NormalizeText(CurrentOrder.AssignedManagerDisplayName),
                 Date = CurrentOrder.Date,
                 Reference = CurrentOrder.Reference,
                 BillTo = CurrentOrder.BillTo,
@@ -593,9 +764,9 @@ namespace PurchaseOrderApp.ViewModels
             };
 
             db.PurchaseOrders.Add(order);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             OrderArchiveService.TrySyncOrderFolder(order.PurchaseOrderId);
-            LoadOrderHistory(db);
+            await LoadOrderHistoryAsync(db, forceFullRefresh: true);
             CurrentOrder.OrderNumberManuallyEdited = false;
             RefreshOrderNumber(db);
             return true;
@@ -606,7 +777,6 @@ namespace PurchaseOrderApp.ViewModels
             LastSaveError = string.Empty;
 
             using var db = new PurchaseOrderContext();
-            EnsureDatabaseSchema(db);
             return ValidatePurchaseOrderForSave(db);
         }
 
@@ -630,6 +800,12 @@ namespace PurchaseOrderApp.ViewModels
             if (string.IsNullOrWhiteSpace(CurrentOrder.BillTo))
             {
                 LastSaveError = "Bill To is required before saving this purchase order.";
+                return false;
+            }
+
+            if (!CurrentOrder.AssignedManagerAppUserId.HasValue)
+            {
+                LastSaveError = "Assign a manager to approve this purchase order before saving.";
                 return false;
             }
 
@@ -661,7 +837,7 @@ namespace PurchaseOrderApp.ViewModels
             return true;
         }
 
-        private bool UpdateExistingPurchaseOrder(PurchaseOrderContext db)
+        private async Task<bool> UpdateExistingPurchaseOrderAsync(PurchaseOrderContext db)
         {
             var order = db.PurchaseOrders
                 .Include(item => item.Lines)
@@ -686,9 +862,12 @@ namespace PurchaseOrderApp.ViewModels
             order.Reference = CurrentOrder.Reference;
             order.BillTo = CurrentOrder.BillTo;
             order.BillToAddress = CurrentOrder.BillToAddress;
+            order.AssignedManagerAppUserId = CurrentOrder.AssignedManagerAppUserId;
+            order.AssignedManagerDisplayName = NormalizeText(CurrentOrder.AssignedManagerDisplayName);
             order.IncludeVat = CurrentOrder.IncludeVat;
             order.VATPercent = CurrentOrder.VATPercent;
             order.VendorId = CurrentOrder.VendorId;
+            order.UpdatedAt = DateTime.Now;
 
             db.PurchaseOrderLines.RemoveRange(order.Lines);
             order.Lines = Lines.Select(l => new PurchaseOrderLine
@@ -700,9 +879,9 @@ namespace PurchaseOrderApp.ViewModels
                 UnitPrice = l.UnitPrice
             }).ToList();
 
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             OrderArchiveService.TrySyncOrderFolder(order.PurchaseOrderId);
-            LoadOrderHistory(db);
+            await LoadOrderHistoryAsync(db, forceFullRefresh: true);
             return true;
         }
 
@@ -713,6 +892,128 @@ namespace PurchaseOrderApp.ViewModels
                 !order.RejectedAt.HasValue &&
                 string.IsNullOrWhiteSpace(order.SignedOrderFileName) &&
                 string.IsNullOrWhiteSpace(order.InvoiceFileName);
+        }
+
+        private bool CanDeleteOrder(PurchaseOrder order)
+        {
+            return !IsCompletedOrder(order) && IsOrderCreatedBySignedInUser(order);
+        }
+
+        private bool CanCurrentUserManagerApprove(PurchaseOrder order)
+        {
+            if (!CanManagerApprovePurchaseOrders)
+            {
+                return false;
+            }
+
+            if (CanApprovePurchaseOrders)
+            {
+                return true;
+            }
+
+            return signedInUserAppUserId.HasValue &&
+                order.AssignedManagerAppUserId == signedInUserAppUserId.Value;
+        }
+
+        private bool CanCurrentUserSeeOrder(PurchaseOrder order)
+        {
+            if (CanApprovePurchaseOrders)
+            {
+                return true;
+            }
+
+            if (CanManagerApprovePurchaseOrders)
+            {
+                return signedInUserAppUserId.HasValue &&
+                    order.AssignedManagerAppUserId == signedInUserAppUserId.Value;
+            }
+
+            return IsOrderCreatedBySignedInUser(order);
+        }
+
+        private string GetDeleteRestrictionMessage(PurchaseOrder order)
+        {
+            if (IsCompletedOrder(order))
+            {
+                return "Completed purchase orders cannot be deleted.";
+            }
+
+            return IsOrderCreatedBySignedInUser(order)
+                ? "Delete is available because you created this purchase order."
+                : "Only the user who created this purchase order can delete it.";
+        }
+
+        private bool IsOrderCreatedBySignedInUser(PurchaseOrder order)
+        {
+            return IsOrderCreatedBySignedInUser(order.CreatedByAppUserId, order.CreatedByDisplayName);
+        }
+
+        private bool IsOrderCreatedBySignedInUser(int? createdByAppUserId, string? createdByDisplayName)
+        {
+            if (signedInUserAppUserId.HasValue && createdByAppUserId == signedInUserAppUserId.Value)
+            {
+                return true;
+            }
+
+            return !createdByAppUserId.HasValue &&
+                !string.IsNullOrWhiteSpace(createdByDisplayName) &&
+                !string.IsNullOrWhiteSpace(signedInUserDisplayName) &&
+                string.Equals(createdByDisplayName.Trim(), signedInUserDisplayName.Trim(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsCompletedOrder(PurchaseOrder order)
+        {
+            return order.InvoiceContent != null || !string.IsNullOrWhiteSpace(order.InvoiceFileName);
+        }
+
+        private bool CanCurrentUserUploadInvoice(PurchaseOrder order)
+        {
+            return CanApprovePurchaseOrders &&
+                IsOrderCreatedBySignedInUser(order) &&
+                HasFullApproval(order) &&
+                !order.RejectedAt.HasValue &&
+                !HasInvoice(order);
+        }
+
+        private bool CanCurrentUserOpenInvoice(PurchaseOrder order)
+        {
+            return HasInvoice(order) &&
+                IsOrderCreatedBySignedInUser(order) &&
+                IsInvoiceUploadedByOrderCreator(order);
+        }
+
+        private static bool HasInvoice(PurchaseOrder order)
+        {
+            return order.InvoiceContent is { Length: > 0 } &&
+                !string.IsNullOrWhiteSpace(order.InvoiceFileName);
+        }
+
+        private static bool IsInvoiceUploadedByOrderCreator(PurchaseOrder order)
+        {
+            if (!HasInvoice(order))
+            {
+                return false;
+            }
+
+            if (!order.InvoiceUploadedByAppUserId.HasValue &&
+                string.IsNullOrWhiteSpace(order.InvoiceUploadedByDisplayName))
+            {
+                return true;
+            }
+
+            if (order.CreatedByAppUserId.HasValue &&
+                order.InvoiceUploadedByAppUserId == order.CreatedByAppUserId.Value)
+            {
+                return true;
+            }
+
+            return !order.CreatedByAppUserId.HasValue &&
+                !string.IsNullOrWhiteSpace(order.CreatedByDisplayName) &&
+                !string.IsNullOrWhiteSpace(order.InvoiceUploadedByDisplayName) &&
+                string.Equals(
+                    order.CreatedByDisplayName.Trim(),
+                    order.InvoiceUploadedByDisplayName.Trim(),
+                    StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool HasFullApproval(PurchaseOrder order)
@@ -736,6 +1037,12 @@ namespace PurchaseOrderApp.ViewModels
                 .Any(order => string.Equals(order.OrderNumber?.Trim(), normalizedOrderNumber, StringComparison.OrdinalIgnoreCase));
         }
 
+        private static string? NormalizeText(string? value)
+        {
+            var normalized = value?.Trim();
+            return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+        }
+
         private void RefreshTotals()
         {
             SubTotal = Math.Round(Lines.Sum(l => l.LineTotal), 2);
@@ -757,11 +1064,32 @@ namespace PurchaseOrderApp.ViewModels
             RefreshOrderNumber(db);
         }
 
-        public void LoadOrderHistory()
+        public async Task LoadOrderHistoryAsync(bool forceFullRefresh = false)
         {
             using var db = new PurchaseOrderContext();
-            EnsureDatabaseSchema(db);
-            LoadOrderHistory(db);
+            await LoadOrderHistoryAsync(db, forceFullRefresh);
+        }
+
+        private async Task LoadManagerApproversAsync()
+        {
+            using var db = new PurchaseOrderContext();
+            await LoadManagerApproversAsync(db);
+        }
+
+        private async Task LoadManagerApproversAsync(PurchaseOrderContext db)
+        {
+            var selectedManagerId = CurrentOrder?.AssignedManagerAppUserId ?? SelectedManagerApprover?.AppUserId;
+            var managers = await db.AppUsers
+                .AsNoTracking()
+                .Include(user => user.Role)
+                .Where(user => user.IsActive && user.Role.CanManagerApprovePurchaseOrders)
+                .OrderBy(user => user.DisplayName)
+                .ToListAsync();
+
+            ManagerApprovers = new ObservableCollection<AppUser>(managers);
+            SelectedManagerApprover = selectedManagerId.HasValue
+                ? ManagerApprovers.FirstOrDefault(manager => manager.AppUserId == selectedManagerId.Value)
+                : null;
         }
 
         private void RefreshOrderNumber(PurchaseOrderContext db)
@@ -776,49 +1104,99 @@ namespace PurchaseOrderApp.ViewModels
                 return;
             }
 
-            var companyName = CurrentOrder.Vendor?.Name
-                ?? SelectedVendor?.Name
-                ?? db.Vendors
-                    .Where(vendor => vendor.VendorId == CurrentOrder.VendorId)
-                    .Select(vendor => vendor.Name)
-                    .FirstOrDefault();
-
-            CurrentOrder.OrderNumber = GenerateNextOrderNumber(db, companyName);
+            CurrentOrder.OrderNumber = GenerateNextOrderNumber(db);
             CurrentOrder.OrderNumberManuallyEdited = false;
             OnPropertyChanged(nameof(OrderNumber));
         }
 
-        private void LoadOrderHistory(PurchaseOrderContext db)
+        private async Task LoadOrderHistoryAsync(PurchaseOrderContext db, bool forceFullRefresh)
         {
             var selectedOrderId = SelectedOrderHistoryItem?.PurchaseOrderId;
-            var orders = db.PurchaseOrders
+            var refreshSince = forceFullRefresh ? null : lastHistoryRefreshAt;
+
+            var query = db.PurchaseOrders
                 .AsNoTracking()
                 .Include(order => order.Vendor)
-                .Include(order => order.Lines)
-                .OrderByDescending(order => order.PurchaseOrderId)
-                .ToList();
+                .AsQueryable();
 
-            var historyItems = orders
-                .Select(order => new OrderHistoryItem
+            if (!CanApprovePurchaseOrders)
+            {
+                if (CanManagerApprovePurchaseOrders && signedInUserAppUserId.HasValue)
                 {
-                    PurchaseOrderId = order.PurchaseOrderId,
-                    OrderNumber = order.OrderNumber,
-                    Date = order.Date,
-                    CompanyName = order.Vendor != null ? order.Vendor.Name : string.Empty,
-                    BillTo = order.BillTo,
-                    Reference = order.Reference,
-                    TotalAmount = order.Total,
-                    ManagerApprovedAt = order.ManagerApprovedAt,
-                    DirectorApprovedAt = order.DirectorApprovedAt,
-                    SupplierCopySentAt = order.SupplierCopySentAt,
-                    RejectedAt = order.RejectedAt,
-                    SignedOrderFileName = order.SignedOrderFileName,
-                    InvoiceFileName = order.InvoiceFileName
-                })
-                .ToList();
+                    var managerId = signedInUserAppUserId.Value;
+                    query = query.Where(order => order.AssignedManagerAppUserId == managerId);
+                }
+                else if (signedInUserAppUserId.HasValue)
+                {
+                    var creatorId = signedInUserAppUserId.Value;
+                    query = query.Where(order => order.CreatedByAppUserId == creatorId);
+                }
+                else if (!string.IsNullOrWhiteSpace(signedInUserDisplayName))
+                {
+                    var creatorName = signedInUserDisplayName.Trim();
+                    query = query.Where(order => order.CreatedByDisplayName == creatorName);
+                }
+                else
+                {
+                    query = query.Where(_ => false);
+                }
+            }
+            if (refreshSince.HasValue)
+            {
+                query = query.Where(order => order.UpdatedAt > refreshSince.Value);
+            }
 
-            OrderHistory = new ObservableCollection<OrderHistoryItem>(historyItems);
-            UpdateHistorySummary(historyItems);
+            var changedOrders = await query
+                .OrderByDescending(order => order.PurchaseOrderId)
+                .Select(order => new PurchaseOrderHistoryProjection(
+                    order.PurchaseOrderId,
+                    order.OrderNumber,
+                    order.Date,
+                    order.UpdatedAt,
+                    order.Vendor != null ? order.Vendor.Name : string.Empty,
+                    order.BillTo,
+                    order.Reference,
+                    order.CreatedByDisplayName ?? string.Empty,
+                    order.CreatedByAppUserId,
+                    order.AssignedManagerDisplayName ?? string.Empty,
+                    order.AssignedManagerAppUserId,
+                    order.IncludeVat
+                        ? Math.Round(
+                            Math.Round(order.Lines.Sum(line => line.Quantity * line.UnitPrice), 2) +
+                            Math.Round(Math.Round(order.Lines.Sum(line => line.Quantity * line.UnitPrice), 2) * order.VATPercent / 100m, 2),
+                            2)
+                        : Math.Round(order.Lines.Sum(line => line.Quantity * line.UnitPrice), 2),
+                    order.ManagerApprovedAt,
+                    order.DirectorApprovedAt,
+                    order.SupplierCopySentAt,
+                    order.RejectedAt,
+                    order.SignedOrderFileName,
+                    order.InvoiceFileName))
+                .Take(200)
+                .ToListAsync();
+
+            if (!refreshSince.HasValue)
+            {
+                OrderHistory = new ObservableCollection<OrderHistoryItem>(
+                    changedOrders.Select(MapHistoryItem));
+            }
+            else if (changedOrders.Count > 0)
+            {
+                var byId = OrderHistory.ToDictionary(item => item.PurchaseOrderId);
+                foreach (var changed in changedOrders)
+                {
+                    var mapped = MapHistoryItem(changed);
+                    byId[mapped.PurchaseOrderId] = mapped;
+                }
+
+                OrderHistory = new ObservableCollection<OrderHistoryItem>(
+                    byId.Values
+                        .OrderByDescending(item => item.PurchaseOrderId)
+                        .Take(200));
+            }
+
+            lastHistoryRefreshAt = DateTime.Now;
+            UpdateHistorySummary(OrderHistory);
             ApplyHistoryFilter(selectedOrderId);
         }
 
@@ -827,98 +1205,41 @@ namespace PurchaseOrderApp.ViewModels
             ApplyHistoryFilter(SelectedOrderHistoryItem?.PurchaseOrderId);
         }
 
-        private static void EnsureDatabaseSchema(PurchaseOrderContext db)
+        partial void OnSelectedHistoryScopeChanged(OrderHistoryScope value)
         {
-            var columnNames = GetPurchaseOrderColumnNames(db);
-            AddColumnIfMissing(db, columnNames, "OrderNumberManuallyEdited", "INTEGER NOT NULL DEFAULT 0");
-            AddColumnIfMissing(db, columnNames, "IncludeVat", "INTEGER NOT NULL DEFAULT 1");
-            AddColumnIfMissing(db, columnNames, "ManagerApprovedAt", "TEXT NULL");
-            AddColumnIfMissing(db, columnNames, "DirectorApprovedAt", "TEXT NULL");
-            AddColumnIfMissing(db, columnNames, "SupplierCopySentAt", "TEXT NULL");
-            AddColumnIfMissing(db, columnNames, "RejectedAt", "TEXT NULL");
-            AddColumnIfMissing(db, columnNames, "SignedOrderFileName", "TEXT NULL");
-            AddColumnIfMissing(db, columnNames, "SignedOrderContent", "BLOB NULL");
-            AddColumnIfMissing(db, columnNames, "InvoiceFileName", "TEXT NULL");
-            AddColumnIfMissing(db, columnNames, "InvoiceContent", "BLOB NULL");
+            ApplyHistoryFilter(SelectedOrderHistoryItem?.PurchaseOrderId);
         }
 
-        private static HashSet<string> GetPurchaseOrderColumnNames(PurchaseOrderContext db)
+        partial void OnFilteredOrderHistoryChanged(ObservableCollection<OrderHistoryItem> value)
         {
-            var columnNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var connection = db.Database.GetDbConnection();
-            var shouldClose = connection.State != ConnectionState.Open;
-
-            if (shouldClose)
-            {
-                connection.Open();
-            }
-
-            try
-            {
-                using var command = connection.CreateCommand();
-                command.CommandText = "PRAGMA table_info('PurchaseOrders')";
-
-                using var reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    columnNames.Add(reader.GetString(1));
-                }
-            }
-            finally
-            {
-                if (shouldClose)
-                {
-                    connection.Close();
-                }
-            }
-
-            return columnNames;
+            OnPropertyChanged(nameof(HasVisibleOrders));
+            OnPropertyChanged(nameof(HasNoVisibleOrders));
+            OnPropertyChanged(nameof(EmptyHistoryMessage));
         }
 
-        private static void AddColumnIfMissing(PurchaseOrderContext db, HashSet<string> existingColumns, string columnName, string definition)
-        {
-            if (existingColumns.Contains(columnName))
-            {
-                return;
-            }
-
-            var sql = columnName switch
-            {
-                "OrderNumberManuallyEdited" => "ALTER TABLE PurchaseOrders ADD COLUMN OrderNumberManuallyEdited INTEGER NOT NULL DEFAULT 0",
-                "IncludeVat" => "ALTER TABLE PurchaseOrders ADD COLUMN IncludeVat INTEGER NOT NULL DEFAULT 1",
-                "ManagerApprovedAt" => "ALTER TABLE PurchaseOrders ADD COLUMN ManagerApprovedAt TEXT NULL",
-                "DirectorApprovedAt" => "ALTER TABLE PurchaseOrders ADD COLUMN DirectorApprovedAt TEXT NULL",
-                "SupplierCopySentAt" => "ALTER TABLE PurchaseOrders ADD COLUMN SupplierCopySentAt TEXT NULL",
-                "RejectedAt" => "ALTER TABLE PurchaseOrders ADD COLUMN RejectedAt TEXT NULL",
-                "SignedOrderFileName" => "ALTER TABLE PurchaseOrders ADD COLUMN SignedOrderFileName TEXT NULL",
-                "SignedOrderContent" => "ALTER TABLE PurchaseOrders ADD COLUMN SignedOrderContent BLOB NULL",
-                "InvoiceFileName" => "ALTER TABLE PurchaseOrders ADD COLUMN InvoiceFileName TEXT NULL",
-                "InvoiceContent" => "ALTER TABLE PurchaseOrders ADD COLUMN InvoiceContent BLOB NULL",
-                _ => throw new InvalidOperationException($"Unsupported column migration: {columnName} {definition}")
-            };
-
-            db.Database.ExecuteSqlRaw(sql);
-            existingColumns.Add(columnName);
-        }
-
-        private bool UpdateOrderWorkflow(int orderId, Action<PurchaseOrder> updateAction)
+        private async Task<bool> UpdateOrderWorkflowAsync(int orderId, Action<PurchaseOrder> updateAction)
         {
             using var db = new PurchaseOrderContext();
-            EnsureDatabaseSchema(db);
 
-            var order = db.PurchaseOrders.FirstOrDefault(item => item.PurchaseOrderId == orderId);
+            var order = await db.PurchaseOrders.FirstOrDefaultAsync(item => item.PurchaseOrderId == orderId);
             if (order == null)
             {
                 return false;
             }
 
             updateAction(order);
-            db.SaveChanges();
-            LoadOrderHistory(db);
+            if (db.Entry(order).State == EntityState.Unchanged)
+            {
+                return false;
+            }
+
+            order.UpdatedAt = DateTime.Now;
+            await db.SaveChangesAsync();
+            await LoadOrderHistoryAsync(db, forceFullRefresh: false);
             return true;
         }
 
-        private bool SaveOrderDocument(int orderId, string fileName, byte[] content, bool isInvoice)
+        private async Task<bool> SaveOrderDocumentAsync(int orderId, string fileName, byte[] content, bool isInvoice)
         {
             if (string.IsNullOrWhiteSpace(fileName) || content.Length == 0)
             {
@@ -926,7 +1247,6 @@ namespace PurchaseOrderApp.ViewModels
             }
 
             using var db = new PurchaseOrderContext();
-            EnsureDatabaseSchema(db);
 
             var order = db.PurchaseOrders.FirstOrDefault(item => item.PurchaseOrderId == orderId);
             if (order == null)
@@ -936,13 +1256,16 @@ namespace PurchaseOrderApp.ViewModels
 
             if (isInvoice)
             {
-                if (!HasFullApproval(order))
+                if (!CanCurrentUserUploadInvoice(order))
                 {
                     return false;
                 }
 
                 order.InvoiceFileName = fileName;
                 order.InvoiceContent = content;
+                order.InvoiceUploadedByAppUserId = signedInUserAppUserId;
+                order.InvoiceUploadedByDisplayName = NormalizeText(signedInUserDisplayName);
+                order.InvoiceUploadedAt = DateTime.Now;
             }
             else
             {
@@ -950,12 +1273,17 @@ namespace PurchaseOrderApp.ViewModels
                 order.SignedOrderContent = content;
                 var approvalTime = order.ManagerApprovedAt ?? order.DirectorApprovedAt ?? DateTime.Now;
                 order.ManagerApprovedAt = approvalTime;
+                order.ManagerApprovedByAppUserId ??= signedInUserAppUserId;
+                order.ManagerApprovedByDisplayName ??= NormalizeText(signedInUserDisplayName);
                 order.DirectorApprovedAt = approvalTime;
+                order.DirectorApprovedByAppUserId ??= signedInUserAppUserId;
+                order.DirectorApprovedByDisplayName ??= NormalizeText(signedInUserDisplayName);
             }
 
-            db.SaveChanges();
+            order.UpdatedAt = DateTime.Now;
+            await db.SaveChangesAsync();
             OrderArchiveService.TrySyncOrderFolder(orderId);
-            LoadOrderHistory(db);
+            await LoadOrderHistoryAsync(db, forceFullRefresh: false);
 
             if (HasFullApproval(order) &&
                 !string.IsNullOrWhiteSpace(order.InvoiceFileName) &&
@@ -970,18 +1298,10 @@ namespace PurchaseOrderApp.ViewModels
         private StoredOrderDocument? GetOrderDocument(int orderId, bool isInvoice)
         {
             using var db = new PurchaseOrderContext();
-            EnsureDatabaseSchema(db);
 
             var order = db.PurchaseOrders
                 .AsNoTracking()
                 .Where(item => item.PurchaseOrderId == orderId)
-                .Select(item => new
-                {
-                    item.SignedOrderFileName,
-                    item.SignedOrderContent,
-                    item.InvoiceFileName,
-                    item.InvoiceContent
-                })
                 .FirstOrDefault();
 
             if (order == null)
@@ -991,6 +1311,11 @@ namespace PurchaseOrderApp.ViewModels
 
             if (isInvoice)
             {
+                if (!CanCurrentUserOpenInvoice(order))
+                {
+                    return null;
+                }
+
                 return order.InvoiceContent == null || string.IsNullOrWhiteSpace(order.InvoiceFileName)
                     ? null
                     : new StoredOrderDocument(order.InvoiceFileName, order.InvoiceContent);
@@ -1027,6 +1352,7 @@ namespace PurchaseOrderApp.ViewModels
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             var filteredItems = OrderHistory
+                .Where(MatchesHistoryScope)
                 .Where(item => MatchesHistorySearch(item, searchTerms))
                 .ToList();
 
@@ -1043,6 +1369,46 @@ namespace PurchaseOrderApp.ViewModels
             CompletedOrderCount = historyItems.Count(item => item.IsCompleted);
             RejectedOrderCount = historyItems.Count(item => item.IsRejected);
             ActiveOrderCount = historyItems.Count - CompletedOrderCount - RejectedOrderCount;
+            MyOrderCount = historyItems.Count(item => item.IsCreatedByCurrentUser);
+            AwaitingManagerCount = historyItems.Count(item => string.Equals(item.OrderStatus, "Pending Manager Approval", StringComparison.OrdinalIgnoreCase));
+            AwaitingExecutiveCount = historyItems.Count(item => string.Equals(item.OrderStatus, "Pending Director Approval", StringComparison.OrdinalIgnoreCase));
+            AwaitingInvoiceCount = historyItems.Count(item => string.Equals(item.OrderStatus, "Pending Invoice", StringComparison.OrdinalIgnoreCase));
+        }
+
+        private bool MatchesHistoryScope(OrderHistoryItem item)
+        {
+            return SelectedHistoryScope switch
+            {
+                OrderHistoryScope.MyOrders => item.IsCreatedByCurrentUser,
+                OrderHistoryScope.AwaitingManager => string.Equals(item.OrderStatus, "Pending Manager Approval", StringComparison.OrdinalIgnoreCase),
+                OrderHistoryScope.AwaitingExecutive => string.Equals(item.OrderStatus, "Pending Director Approval", StringComparison.OrdinalIgnoreCase),
+                OrderHistoryScope.AwaitingInvoice => string.Equals(item.OrderStatus, "Pending Invoice", StringComparison.OrdinalIgnoreCase),
+                OrderHistoryScope.Completed => item.IsCompleted,
+                _ => true
+            };
+        }
+
+        private OrderHistoryItem MapHistoryItem(PurchaseOrderHistoryProjection order)
+        {
+            return new OrderHistoryItem
+            {
+                PurchaseOrderId = order.PurchaseOrderId,
+                OrderNumber = order.OrderNumber,
+                Date = order.Date,
+                CompanyName = order.CompanyName,
+                BillTo = order.BillTo,
+                Reference = order.Reference,
+                CreatedByDisplayName = order.CreatedByDisplayName,
+                AssignedManagerDisplayName = order.AssignedManagerDisplayName,
+                IsCreatedByCurrentUser = IsOrderCreatedBySignedInUser(order.CreatedByAppUserId, order.CreatedByDisplayName),
+                TotalAmount = order.TotalAmount,
+                ManagerApprovedAt = order.ManagerApprovedAt,
+                DirectorApprovedAt = order.DirectorApprovedAt,
+                SupplierCopySentAt = order.SupplierCopySentAt,
+                RejectedAt = order.RejectedAt,
+                SignedOrderFileName = order.SignedOrderFileName,
+                InvoiceFileName = order.InvoiceFileName
+            };
         }
 
         private static bool MatchesHistorySearch(OrderHistoryItem item, string[] searchTerms)
@@ -1064,62 +1430,12 @@ namespace PurchaseOrderApp.ViewModels
             return searchTerms.All(term => searchableText.Contains(term.ToUpperInvariant(), StringComparison.Ordinal));
         }
 
-        private static void NormalizeExistingOrderNumbers(PurchaseOrderContext db)
+        private string GenerateNextOrderNumber(PurchaseOrderContext db)
         {
-            var orders = db.PurchaseOrders
-                .Include(order => order.Vendor)
-                .OrderBy(order => order.PurchaseOrderId)
-                .ToList();
-
-            if (orders.Count == 0)
-            {
-                return;
-            }
-
-            var nextSequenceByPrefix = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            var hasChanges = false;
-
-            foreach (var order in orders)
-            {
-                var prefix = GetOrderPrefix(order.Vendor?.Name);
-                var nextSequence = nextSequenceByPrefix.TryGetValue(prefix, out var existingSequence)
-                    ? existingSequence
-                    : OrderSequenceStartingValue;
-                var currentSequence = ExtractOrderSequence(order.OrderNumber, prefix);
-
-                if (order.OrderNumberManuallyEdited && !string.IsNullOrWhiteSpace(order.OrderNumber))
-                {
-                    if (currentSequence >= nextSequence)
-                    {
-                        nextSequence = currentSequence + 1;
-                    }
-
-                    nextSequenceByPrefix[prefix] = nextSequence;
-                    continue;
-                }
-
-                var expectedOrderNumber = $"{prefix}{nextSequence.ToString($"D{OrderSequenceDigits}")}";
-                if (!string.Equals(order.OrderNumber, expectedOrderNumber, StringComparison.OrdinalIgnoreCase))
-                {
-                    order.OrderNumber = expectedOrderNumber;
-                    hasChanges = true;
-                }
-
-                nextSequenceByPrefix[prefix] = nextSequence + 1;
-            }
-
-            if (hasChanges)
-            {
-                db.SaveChanges();
-            }
-        }
-
-        private static string GenerateNextOrderNumber(PurchaseOrderContext db, string? companyName)
-        {
-            var prefix = GetOrderPrefix(companyName);
+            var prefix = GetOrderPrefix();
             var nextSequence = db.PurchaseOrders
                 .AsEnumerable()
-                .Select(order => ExtractOrderSequence(order.OrderNumber, prefix))
+                .Select(order => ExtractOrderSequence(order.OrderNumber))
                 .Where(sequence => sequence >= 0)
                 .DefaultIfEmpty(OrderSequenceStartingValue - 1)
                 .Max() + 1;
@@ -1127,32 +1443,31 @@ namespace PurchaseOrderApp.ViewModels
             return $"{prefix}{nextSequence.ToString($"D{OrderSequenceDigits}")}";
         }
 
-        private static int ExtractOrderSequence(string? orderNumber, string prefix)
+        private static int ExtractOrderSequence(string? orderNumber)
         {
-            if (string.IsNullOrWhiteSpace(orderNumber) ||
-                !orderNumber.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrWhiteSpace(orderNumber))
             {
                 return -1;
             }
 
-            var suffix = orderNumber[prefix.Length..];
+            var suffixStartIndex = orderNumber.Length;
+            while (suffixStartIndex > 0 && char.IsDigit(orderNumber[suffixStartIndex - 1]))
+            {
+                suffixStartIndex--;
+            }
+
+            if (suffixStartIndex == orderNumber.Length)
+            {
+                return -1;
+            }
+
+            var suffix = orderNumber[suffixStartIndex..];
             return int.TryParse(suffix, out var sequence) ? sequence : -1;
         }
 
-        private static string GetOrderPrefix(string? companyName)
+        private string GetOrderPrefix()
         {
-            if (string.Equals(companyName, ReactionServicesCompanyName, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(companyName, LegacyReactionServicesCompanyName, StringComparison.OrdinalIgnoreCase))
-            {
-                return ReactionServicesOrderPrefix;
-            }
-
-            if (string.Equals(companyName, SecurityOperationsCompanyName, StringComparison.OrdinalIgnoreCase))
-            {
-                return SecurityOperationsOrderPrefix;
-            }
-
-            var condensedName = NormalizePrefix(GetCurrentUserDisplayName());
+            var condensedName = NormalizePrefix(signedInUserDisplayName);
             if (condensedName.Length >= 3)
             {
                 return condensedName[..3];
@@ -1170,15 +1485,6 @@ namespace PurchaseOrderApp.ViewModels
                 .Where(char.IsLetterOrDigit)
                 .Select(char.ToUpperInvariant)
                 .ToArray());
-        }
-
-        private static string GetCurrentUserDisplayName()
-        {
-            uint capacity = 256;
-            var buffer = new StringBuilder((int)capacity);
-            return GetUserNameEx(NameDisplayFormat, buffer, ref capacity) && !string.IsNullOrWhiteSpace(buffer.ToString())
-                ? buffer.ToString().Trim()
-                : Environment.UserName;
         }
 
         private void SetLinesCollection(ObservableCollection<PurchaseOrderLine> newLines)

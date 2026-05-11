@@ -1,0 +1,8 @@
+{
+  "Source": {
+    "SqliteDatabasePath": "C:\\Path\\To\\purchaseorders.db"
+  },
+  "Target": {
+    "SqlServerConnectionString": "Server=YOUR-SERVER-NAME;Database=PurchaseOrderApp;Integrated Security=True;TrustServerCertificate=True"
+  }
+}
